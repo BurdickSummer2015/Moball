@@ -1,2 +1,2 @@
 # Moball
-Code for the onboard computer of the moball project
+Code for the onboard computer for the moball project
