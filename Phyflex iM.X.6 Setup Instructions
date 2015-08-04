@@ -1,9 +1,9 @@
 
 Welcome! If you are reading this then you probably want to set up a Phyflex iM.X.6 rapid development kit for development. I caution you, from start to finish the process will take at least two days. If you stray from this guide and follow only Phytec's Quickstart guide here: 
 http://phytec.com/wiki/index.php?title=PhyFLEX-i.MX6_Linux_Quickstart-PD13.2.0#TFTP
-the process could take as long as 2 weeks. There are several things that are not mentioned in the quickstart guide that could really hold you back. To begin with in order to start off on the right foot you will need a couple things:
+if everything goes wrong, which it did for me, then process could take as long as 2 weeks. There are several things that are not mentioned in the quickstart guide that could really hold you back. To begin with in order to start off on the right foot you will need a couple things:
 
-1) An RS-232(female) to USB(male) serial adapter. Be warned not all serial adapters are created equal. Some will will drop packets in both directions, and others will work just fine. They are almost all made in China and there is no accountability for the chips they are built with, so buy two or three and at least one of them will work correctly. Paying more does not entail better quality. I payed $20 for one that crapped out and $7 for one that works flawlessly. 
+1) An RS-232(female) to USB(male) serial adapter. Be warned not all serial adapters are created equal. Some will will drop packets in both directions, and others will work just fine. They are almost all made in China and there is no accountability for the chips they are built with, so buy two or three differnet brands and at least one of them will work correctly. Paying more does not entail better quality. I payed $20 for one that crapped out and $7 for one that works flawlessly. 
 
 2) A computer with Ubunutu 12.04 LTS (32-bit) with a big emphasis on the 12.04 and the 32-bit. You will not be able to develop anything if you have a different version of Ubuntu. Theoretically the processor architecture (32/64) should work either way but it seems to magically not work on 64 for two reasons. Firstly we're going to build a toolchain later on. This is basically just a collection of compilers and compiler tools like debuggers and linkers and what not. On 32-bits it works right after you build it, but in 64-bit as soon as u try to use the toolchain it barks about not being able to find files. Secondly we are going to be using an acient Qt plugin for eclipse. It was developed back in the day when 32-bit machines were actually better supported, so a 64-bit version was never built. Theoretically there is a workaround, but its going to be a pain so just suck it up and install 32-bit Ubuntu 12.04. 
 
@@ -11,7 +11,7 @@ the process could take as long as 2 weeks. There are several things that are not
 
 4) The Rapid Development Kit... duhh
 
-Ok so lets say you've got your kit in the mail. That's no reason to twiddle your thumbs. Almost all the work that need to be done needs to be done on the Host the computer (The Ubuntu 12.04 one you set up earlier). So go ahead and get started with the next section before you get the board.
+Ok so lets say you're waiting for your kit or USB-RS-232 adapter to arrive in the mail. That's no reason to twiddle your thumbs. Almost all the work that need to be done needs to be done on the Host the computer (The Ubuntu 12.04 one you set up earlier). So go ahead and get started with the next section before you get the board.
 
 HOST SETUP:
 
