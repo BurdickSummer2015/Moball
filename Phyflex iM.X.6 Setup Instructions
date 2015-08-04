@@ -32,7 +32,9 @@ Start off by making a folder on your computer that you are going to use to build
 
 $PhyflexDir=Your Phyflex Directory
 
-Open a terminal and download these files and put them in your Phyflex Directory:
+YOU CAN COPY ALL THE CODE FROM HERE UNTIL SIMON SAYS STOP INTO A TERMINAL AND RUN IT (CTRL+C here. CTRL+SHIFT+V in the terminal).
+
+#Open a terminal and download these files and put them in your Phyflex Directory:
 
 wget -O $PhyflexDir/ptxdist-2011.11.0.tar.bz2 'http://www.pengutronix.com/software/ptxdist/download/ptxdist-2011.11.0.tar.bz2'
 
@@ -76,6 +78,8 @@ ptxdist-2011.11.0 select ptxconfigs/arm-cortexa9-linux-gnueabi_gcc-4.6.2_glibc-2
 echo "This is going to take a while. GO EAT LUNCH"
 ptxdist-2011.11.0 go
 echo "It Finished. Hope lunch was good."
+
+SIMON SAYS: STOP!
 
 
 
