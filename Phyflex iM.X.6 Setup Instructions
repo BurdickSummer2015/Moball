@@ -1,0 +1,88 @@
+
+Welcome! If you are reading this then you probably want to set up a Phyflex iM.X.6 rapid development kit for development. I caution you, from start to finish the process will take at least two days. If you stray from this guide and follow only Phytec's Quickstart guide here: 
+http://phytec.com/wiki/index.php?title=PhyFLEX-i.MX6_Linux_Quickstart-PD13.2.0#TFTP
+the process could take as long as 2 weeks. There are several things that are not mentioned in the quickstart guide that could really hold you back. To begin with in order to start off on the right foot you will need a couple things:
+
+1) An RS-232(female) to USB(male) serial adapter. Be warned not all serial adapters are created equal. Some will will drop packets in both directions, and others will work just fine. They are almost all made in China and there is no accountability for the chips they are built with, so buy two or three and at least one of them will work correctly. Paying more does not entail better quality. I payed $20 for one that crapped out and $7 for one that works flawlessly. 
+
+2) A computer with Ubunutu 12.04 LTS (32-bit) with a big emphasis on the 12.04 and the 32-bit. You will not be able to develop anything if you have a different version of Ubuntu. Theoretically the processor architecture (32/64) should work either way but it seems to magically not work on 64 for two reasons. Firstly we're going to build a toolchain later on. This is basically just a collection of compilers and compiler tools like debuggers and linkers and what not. On 32-bits it works right after you build it, but in 64-bit as soon as u try to use the toolchain it barks about not being able to find files. Secondly we are going to be using an acient Qt plugin for eclipse. It was developed back in the day when 32-bit machines were actually better supported, so a 64-bit version was never built. Theoretically there is a workaround, but its going to be a pain so just suck it up and install 32-bit Ubuntu 12.04. 
+
+3) (optional but may be useful for you) A standard size SD card. You probably can't even buy one anymore that is too small for the job, but 2 GB is probably the smallest you should bother with. 
+
+4) The Rapid Development Kit... duhh
+
+Ok so lets say you've got your kit in the mail. That's no reason to twiddle your thumbs. Almost all the work that need to be done needs to be done on the Host the computer (The Ubuntu 12.04 one you set up earlier). So go ahead and get started with the next section before you get the board.
+
+HOST SETUP:
+
+Overview:
+Before we start installing things. I'll explain all the pieces that the Host computer is responisble for. There are two parts that we need to build: The Toolchain, and the BSP. The Toolchain is what we are going to use to compile, link, and debug the C/C++ programs we are going to run on the board. And The BSP consists of 3 parts. First there is the barebox shell which is a shell you can open up to change settings and choose how the board will boot. Second there is the Linux Kernel, which is you know Linux. And Third there is the root filesystem which is magical unicorns. Just kidding its just the filesystem for the board; folders and files an what not.
+You should know that the Toolchain will take 30 minutes to 1 hour to build the first time, and the BSP will take about 4-5 hours to build the first time. If you change anything in the BSP, which you will probably need to do inorder to get the right drivers running on your board, then subsequent builds will only take a minute or two.
+I would recommend that you manage your time like this:
+1) Wake up and go to work
+2) Set everything up to compile the BSP and Toolchain
+3) Compile the toolchain and go to lunch
+4) Come back from lunch and work on something else
+5) Before you go home start compiling the BSP so that it will be done in the morning
+6) The Next day start building the BSP images and at the same time setup your development environment and TFTP server (explained later).
+
+All you need:
+
+Start off by making a folder on your computer that you are going to use to build everything. From now on we'll call it your "Phyflex" directory Put it somewhere not too deep in your filesystem like in your home directory or Documents or Desktop. You're going to be changing directories a lot and you don't want to stray too far from home so you can get around quickly. We'll call it $PhyflexDir from now on, so feel free to copy this guide and do a CTRL+H swap in your favorite text editor or run everything in the same terminal and set the variable:
+
+$PhyflexDir=Your Phyflex Directory
+
+Open a terminal and download these files and put them in your Phyflex Directory:
+
+wget -O $PhyflexDir/ptxdist-2011.11.0.tar.bz2 'http://www.pengutronix.com/software/ptxdist/download/ptxdist-2011.11.0.tar.bz2'
+
+wget -O $PhyflexDir/ptxdist-2012.03.0.tar.bz2 'http://www.pengutronix.com/software/ptxdist/download/ptxdist-2012.03.0.tar.bz2'
+
+wget -O $PhyflexDir/OSELAS.Toolchain-2011.11.1.tar.bz2 'http://www.pengutronix.com/oselas/toolchain/download/OSELAS.Toolchain-2011.11.1.tar.bz2'
+
+wget -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3.tar.gz 'ftp://ftp.phytec.com/products/PFL-A-02_phyFLEX-iMX6/Linux/PD13.2.3/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3.tar.gz'
+
+wget -O $PhyflexDir/qt-eclipse-integration-linux.x86-1.6.1.tar.gz 'ftp://ftp.phytec.com/products/PFL-A-02_phyFLEX-iMX6/Linux/PD13.1.1/Applications/qt-eclipse-integration-linux.x86-1.6.1.tar.gz'
+#
+
+
+
+#cd into your Phyflex Directory and unzip these packages
+
+cd $PhyflexDir
+tar -jxvf ptxdist-2011.11.0.tar.bz2
+tar -jxvf ptxdist-2012.03.0.tar.bz2
+tar -jxvf OSELAS.Toolchain-2011.11.1.tar.bz2
+tar -xvf BSP-Phytec-phyFLEX-i.MX6-PD13.2.3.tar.gz
+#
+
+#cd into ptxdist-2011.11.0 and install it
+
+cd ptxdist-2011.11.0
+./configure
+make
+sudo make install
+
+#cd into ptxdist-2012.03.0 and do the same
+
+cd ../ptxdist-2012.03.0
+./configure
+make
+sudo make install
+
+#Now build the toolchain with ptxdist-2011.11.0 and go to lunch
+
+ptxdist-2011.11.0 select ptxconfigs/arm-cortexa9-linux-gnueabi_gcc-4.6.2_glibc-2.14.1_binutils-2.21.1a_kernel-2.6.39-sanitized.ptxconfig
+echo "This is going to take a while. GO EAT LUNCH"
+ptxdist-2011.11.0 go
+echo "It Finished. Hope lunch was good."
+
+
+
+
+ 
+
+
+
+
+
