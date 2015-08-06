@@ -1,0 +1,24 @@
+
+-Use Ubuntu 12.04
+
+-During the installation of the toolchain:
+	- if autoconf is missing use:sudo get-apt install autoconf
+	
+
+-During the installation of the BSP:
+	-You will need lzop -> sudo apt-get install lzop
+	-If the downloading stop due to unvalid link, download the good compressed package on the internet and put it in the /src directory under the BSP folder
+	-Packages with bad links include:
+		-pure-ftpd-1.0.32.tar.bz2 (http://download.pureftpd.org/pure-ftpd/releases/obsolete/pure-ftpd-1.0.32.tar.bz2)
+		-procps-3.2.8.tar.gz (http://pkgs.fedoraproject.org/repo/pkgs/procps/procps-3.2.8.tar.gz/9532714b6846013ca9898984ba4cd7e0/procps-3.2.8.tar.gz)
+		-splashutils-lite-1.5.4.3.tar.bz2 (http://iweb.dl.sourceforge.net/project/fbsplash.berlios/splashutils-lite-1.5.4.3.tar.bz2)
+		-pekwm-0.1.12.tar.gz (http://pkgs.fedoraproject.org/repo/pkgs/pekwm/pekwm-0.1.12.tar.gz/1f7f9ed32cc03f565a3ad30fd6045c1f/pekwm-0.1.12.tar.gz)
+		-qt-everywhere-opensource-src-4.7.4.tar.gz (http://anychimirror101.mirrors.tds.net/pub/Qt/archive/qt/4.7/qt-everywhere-opensource-src-4.7.4.tar.gz)
+		-arora-0.11.0.tar.gz (http://pkgs.fedoraproject.org/lookaside/pkgs/arora/arora-0.11.0.tar.gz/64334ce4198861471cad9316d841f0cb/arora-0.11.0.tar.gz)
+	-Some builds will not have the correct md5sum so it is important to get not only the correct build but the correct checksum, a few packages that have broken in the past are listed here with the correct links:
+		-If e2fsprogs breaks, get this one and use the link to replace
+		http://pkgs.fedoraproject.org/repo/pkgs/e2fsprogs/e2fsprogs-1.42.tar.gz/md5/a3c4ffd7352310ab5e9412965d575610/
+		-If kmod breaks, get this one and use the link to replace
+		http://pkgs.fedoraproject.org/repo/pkgs/kmod/kmod-5.tar.xz/b271c2ec54aba1c67bda63c8579d8c15/
+		-If sysstat breaks, get this one and use the link to replace
+		http://repository.timesys.com/buildsources/s/sysstat/sysstat-9.0.3/

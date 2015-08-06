@@ -28,11 +28,18 @@ I would recommend that you manage your time like this:
 
 All you need:
 
-Start off by making a folder on your computer that you are going to use to build everything. From now on we'll call it your "Phyflex" directory Put it somewhere not too deep in your filesystem like in your home directory or Documents or Desktop. You're going to be changing directories a lot and you don't want to stray too far from home so you can get around quickly. We'll call it $PhyflexDir from now on, so feel free to copy this guide and do a CTRL+H swap in your favorite text editor or run everything in the same terminal and set the variable:
+Start off by making a folder on your computer that you are going to use to build everything. From now on we'll call it your "Phyflex" directory Put it somewhere not too deep in your filesystem like in your home directory or Documents or Desktop. You're going to be changing directories a lot and you don't want to stray too far from home so you can get around quickly. We'll call it $PhyflexDir from now on, so feel free to copy the code in this guide into seperate ".sh" files and run them or just CTRL+C and then CTRL+SHIFT+V into the terminal. For the former method, be sure to set any of the code that says **EDIT THIS** appropriately. For the former method, just run that code by hand and copy the rest.
 
-$PhyflexDir=Your Phyflex Directory
+For some of the 
 
-YOU CAN COPY ALL THE CODE FROM HERE UNTIL SIMON SAYS STOP INTO A TERMINAL AND RUN IT (CTRL+C here. CTRL+SHIFT+V in the terminal).
+YOU CAN COPY ALL THE CODE FROM HERE UNTIL SIMON SAYS STOP.
+
+#Open an elevated terminal
+sudo -s
+
+#**EDIT THIS**# 
+PhyflexDir=Your Phyflex Directory
+#****#
 
 #Open a terminal and download these files and put them in your Phyflex Directory:
 
@@ -58,29 +65,98 @@ tar -jxvf OSELAS.Toolchain-2011.11.1.tar.bz2
 tar -xvf BSP-Phytec-phyFLEX-i.MX6-PD13.2.3.tar.gz
 #
 
+#install all the dependancies you will need to build ptxDist.
+#ptxdist is the system we will use to build the Toolchain and BSP we will build and install two different versions ptxdist-2011.11.0 for the Toolchain and ptxdist-2012.03.0 for the BSP.
+
+apt-get -y install libncurses-dev gawk flex bison texinfo gettex
+
+#get the stanard linux build tools (g++,etc...) if you don't already have it
+
+apt-get -y install buildessential
+
 #cd into ptxdist-2011.11.0 and install it
 
 cd ptxdist-2011.11.0
 ./configure
 make
-sudo make install
+make install
 
 #cd into ptxdist-2012.03.0 and do the same
 
 cd ../ptxdist-2012.03.0
 ./configure
 make
-sudo make install
+make install
 
-#Now build the toolchain with ptxdist-2011.11.0 and go to lunch
+#Now build the toolchain with ptxdist-2011.11.0 from the Toolchain directory and go to lunch
 
+cd $PhyflexDir/OSELAS.Toolchain-2011.11.1
 ptxdist-2011.11.0 select ptxconfigs/arm-cortexa9-linux-gnueabi_gcc-4.6.2_glibc-2.14.1_binutils-2.21.1a_kernel-2.6.39-sanitized.ptxconfig
 echo "This is going to take a while. GO EAT LUNCH"
 ptxdist-2011.11.0 go
 echo "It Finished. Hope lunch was good."
 
+#Add the toolchain binaries to your path directory. This will make all of the toolchain files globally accessible.
+
+printf '\n%s\n' 'export PATH=$PATH:/opt/OSELAS.Toolchain-2011.11.1/arm-cortexa9-linux-gnueabi/gcc-4.6.2-glibc-2.14.1-binutils-2.21.1a-kernel-2.6.39-sanitized/bin/' >> ~/.bashrc 
+
+#Now resource bashsrc so that the changes are made inside this terminal
+
+source ~/.bashrc
+
+#We need to download a few packages and stick them in the src folder of our BSP directory. The BSP build system has some broken links in it. So we we need to make sure that we download the packages that we need before we build the BSP. Otherwise the build system will throw an error in the middle of the build process.
+
+wget -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/pure-ftpd-1.0.32.tar.bz2 'http://pkgs.fedoraproject.org/repo/pkgs/procps/procps-3.2.8.tar.gz/9532714b6846013ca9898984ba4cd7e0/procps-3.2.8.tar.gz'
+
+wget -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/procps-3.2.8.tar.gz 'http://pkgs.fedoraproject.org/repo/pkgs/procps/procps-3.2.8.tar.gz/9532714b6846013ca9898984ba4cd7e0/procps-3.2.8.tar.gz'
+
+wget -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/splashutils-lite-1.5.4.3.tar.bz2 'http://iweb.dl.sourceforge.net/project/fbsplash.berlios/splashutils-lite-1.5.4.3.tar.bz2'
+
+wget -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/srcpekwm-0.1.12.tar.gz 'http://pkgs.fedoraproject.org/repo/pkgs/pekwm/pekwm-0.1.12.tar.gz/1f7f9ed32cc03f565a3ad30fd6045c1f/pekwm-0.1.12.tar.gz'
+
+wget -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/qt-everywhere-opensource-src-4.7.4.tar.gz 'http://anychimirror101.mirrors.tds.net/pub/Qt/archive/qt/4.7/qt-everywhere-opensource-src-4.7.4.tar.gz'
+
+wget -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/arora-0.11.0.tar.gz 'http://pkgs.fedoraproject.org/lookaside/pkgs/arora/arora-0.11.0.tar.gz/64334ce4198861471cad9316d841f0cb/arora-0.11.0.tar.gz'
+
+wget -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/e2fsprogs-1.42.tar.gz 'http://pkgs.fedoraproject.org/repo/pkgs/e2fsprogs/e2fsprogs-1.42.tar.gz/md5/a3c4ffd7352310ab5e9412965d575610/e2fsprogs-1.42.tar.gz'
+
+wget -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/kmod-5.tar.xz 'http://pkgs.fedoraproject.org/repo/pkgs/kmod/kmod-5.tar.xz/b271c2ec54aba1c67bda63c8579d8c15/kmod-5.tar.xz'
+
+wget -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/sysstat-9.0.3.tar.gz 'http://repository.timesys.com/buildsources/s/sysstat/sysstat-9.0.3/sysstat-9.0.3.tar.gz'
+
+#Now build the BSP with ptxdist-2012.03.0 from the BSP directory and go home this will take several hours
+
+cd $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3
+ptxdist-2012.03.0 select configs/ptxconfig
+ptxdist-2012.03.0 platform configs/phyFLEX-i.MX6/platformconfig
+echo "This is going to take a long time probably 'many' hours. Just let it do its thing over night"
+ptxdist-2012.03.0 go
+echo "It finished. Hopefully sucessfully. If not just run the last three lines again."
+
+#Now build the BSP images. This just packs together the root filesystem, the Linux kernel, and the barebox shell into mountable images and packages.
+
+ptxdist-2012.03.0 images
+
+#Install the eclipse-platform (which is barebones eclipse IDE) and the CDT package (which is the the C/C++ tool system)
+
+apt-get install eclipse-platform eclipse-cdt
+
+#Now unzip the qt plugin for eclipse into the eclipse directory. Note that this plugin is almost certainly useless. The reason phytec reccommends using it probably has to do with how they configure their HelloWorld project, but we'll just unpack it for good measure.
+
+#cd $PhyflexDir
+#tar -xvzf qt-eclipse-integration-linux.x86-1.6.1.tar.gz -C /usr/lib
+
+
+
+
+
+
+
 SIMON SAYS: STOP!
 
+#sed -i 's/192.168.3.11/123.123.1.23/g' .cdtbuild
+#$(hostname)
+#
 
 
 

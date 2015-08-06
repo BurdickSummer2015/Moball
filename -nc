@@ -1,0 +1,91 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+  <meta name="ROBOTS" content="NOINDEX, NOFOLLOW">
+  <title>Caltech Guest wireless network acceptable use</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
+  <meta http-equiv="Pragma" content="no-cache">
+  <style type="text/css">
+body {
+  margin-left: 10%;
+  margin-right: 10%;
+  font-size: 10pt;
+  font-family: "Lucida Grande", Helvetica, Geneva, Arial, sans-serif;
+  font-style: normal;
+  font-variant: normal;
+  font-weight: normal;
+  line-height: 1.5em;
+  background-color: transparent;
+}
+</style>
+</head>
+
+<body>
+
+<p style="text-align:center">
+<img alt="IMSS logo" src="imss_header.jpg">
+</p>
+
+<p style="text-align:center; font-size:18pt;">
+Welcome to the Caltech Guest wireless network
+</p>
+
+<p style="text-align:center">
+Caltech is pleased to provide open access wireless service as a
+convenience to our visitors while on campus. Caltech's campus-wide wireless networking system was made possible
+through generous gifts from Aruba Networks, Inc., and from an alumnus
+from Physics and Biology.
+
+</p>
+
+<p style="font-size:14pt">
+Please note the following:
+
+</p>
+
+<ul>
+<li>Access to the Caltech Guest wireless network is provided at the
+discretion of the California Institute of Technology and may be
+revoked at any time without prior notice.
+
+</li><li>The Caltech Guest wireless network is not a secure network.
+Other users can potentially intercept information you send and
+receive.  Use of encryption is strongly recommended for any sensitive
+or private information, including passwords.
+
+</li><li>Use of the Caltech Guest wireless network is restricted to web
+(http and https), email (imap, pop, imaps, pops, smtp, ssmtp), Secure Shell (SSH) and VPN (IPSec over UDP or TCP, 
+NAT-T, PPTP, L2TP) protocols only.  Other uses are not
+allowed. Note that guests are expected to use their home institution's 
+VPN to access email or any other resources not available via a web 
+browser.
+
+</li><li>Users of the Caltech Guest wireless network are rate-limited
+and are prevented from communicating directly with each other.  All
+traffic is subject to Network Address Translation.
+
+</li><li>Your network traffic will be monitored as part of Caltech's
+normal network management processes.
+
+</li><li>You are subject to the Caltech Institute Policy on <a href="https://131.215.229.36/upload/custom/Guest-Auth-CP/aup.html">Acceptable Use of Electronic Information Resources</a>.
+
+</li></ul>
+
+<form action="/cgi-bin/login" id="guestform" method="get" title="Guest user login">
+<div>
+<input id="email" name="email" size="25" class="text" value="Guest-User@caltech.edu" type="hidden">
+<input name="cmd" value="authenticate" type="hidden">
+<input name="Login" value="Continue" class="button" type="submit">
+</div>
+</form>
+
+<p style="font-size:8pt">
+Last modified: 2008-01-14 JD
+</p>
+
+<p style="font-size:8pt">
+&#169;Copyright California Institute of Technology.  All rights reserved.
+</p>
+
+
+
+</body></html>
