@@ -2,50 +2,6 @@
 #!/bin/bash
 # init
 
-ReloadPackages="false"
-
-PhyflexDir=0
-ReloadPackages="false"
-for i in "$@"
-do
-case $i in
-    -d|--download)
-    ReloadPackages="true"
-    ;;
-    -p=*|--path=*)
-    PhyflexDir="${i#*=}"
-    ;;
-    # -l=*|--lib=*)
-    # DIR="${i#*=}"
-    # ;;
-    # --default)
-    # DEFAULT=YES
-    # ;;
-    *)
-            # unknown option
-    ;;
-esac
-done
-echo $ReloadPackages
-eval PhyflexDir=$PhyflexDir
-echo $PhyflexDir
-
-apt-get install tftpd-hpa
-
-#Erase /etc/default/tftpd-hpa and replace its contents with the following
-> /etc/default/tftpd-hpa
-cat >/etc/default/tftpd-hpa<<EOL
-# /etc/default/tftpd-hpa 
-
-TFTP_USERNAME="tftp"
-#TFTP_DIRECTORY="/var/lib/tftpboot"
-TFTP_DIRECTORY="${PhyflexDir}/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/platform-phyFLEX-i.MX6/images"
-TFTP_ADDRESS="0.0.0.0:69"
-TFTP_OPTIONS="--secure"
-EOL
-
-
-
 function pause()
 {
    read -p "$*"
@@ -69,18 +25,8 @@ function valid_ip()
 }
 
 
-
-
-
-
-
-apt-get install minicom
-
-
-wget $wgetargs -O $HOME/ptxdist-2011.11.0.tar.bz2 'http://www.pengutronix.com/software/ptxdist/download/ptxdist-2011.11.0.tar.bz2'
-
 echo 
-echo "You will need a valid Static IP address inside your network to dedicate to to the Phyflex i.MX6. You should contact your network adminstrator to get one. If you have already gotten one, then you can enter it now. Or you can enter [d] to generate a list of available ip addresses on your ethernet network, and then pick one you like."
+echo "You will need a valid Static IP address inside your network to dedicate to to the Phyflex i.MX6. You should contact your network adminstrator to get one. If you have already gotten one, then you can enter it now. Or you can enter [d] to generate a list of available ip addresses on your ethernet network, and then pick one you like. But be warned, this method may open you up to IP address conflicts with other machines on your network."
 OK=0
 BoardStaticIP=0
 #Get the Host's IP address
@@ -112,7 +58,6 @@ echo "Then you will need to boot the board"
 echo "Pinging Static IP: $BoardStaticIP"
 echo
 
-
 OK=0
 while [ $OK -lt 1 ]; do
   ping -c 1 "$BoardStaticIP" 2>&1 >/dev/null; alive=$?
@@ -130,11 +75,36 @@ else
   echo 
   echo "Running ssh-keygen to build a public ssh key..."
   echo
-  ssh-keygen -t rsa -b 4096
+  ssh-keygen -t rsa
 fi
 
+echo $(hostname)
 
+OK=0
+while [ $OK -lt 1 ]; do
+ ssh "root@$BoardStaticIP" "mkdir -p /home/ssh-keys/$(hostname)"
+ if [ "$?" == "0" ]; then 
+  scp "$HOME/.ssh/id_rsa.pub" "root@$BoardStaticIP:/home/ssh-keys/$(hostname)"
+  OK=1
+ else
+  echo
+  echo "shh could not connect to root@$BoardStaticIP."
+  echo "To resolve this issue open minicom on the board and run:"
+  echo
+  echo "ssh $(id -un)@$ip"
+  echo
+  echo "This will add you to the list of known hosts on the board and ssh should work"
+  pause "After you are finished press any key to try to connect again..."
+ fi
+done
 
+read -r -p "Would you like to configure your project with Static IP: $BoardStaticIP? [y/n]" response
+if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
+ echo "editing .cproject..."
+ sed -i "s/root@.*:/root@${BoardStaticIP}:/g" .cproject
+fi
+
+echo "Network configuration for Phyflex i.MX6 has finished."
 
 
 : <<'COMMENT'
