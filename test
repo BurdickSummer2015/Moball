@@ -2,6 +2,10 @@
 #!/bin/bash
 # init
 
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+sudo $DIR/tftp_setup.sh
+
 ReloadPackages="false"
 
 PhyflexDir=0
@@ -29,6 +33,12 @@ done
 echo $ReloadPackages
 eval PhyflexDir=$PhyflexDir
 echo $PhyflexDir
+
+if [ -x "/usr/local/lib/ptxdist-2011.11.0/bin/ptxdist" ]; then
+ echo "WHAAHHAHAHAHAHAHAHAHAHHAHAHAHAHA"
+else
+ echo "NOOOOOOO"
+fi
 
 apt-get install tftpd-hpa
 

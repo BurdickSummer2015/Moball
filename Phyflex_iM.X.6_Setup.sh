@@ -30,29 +30,45 @@
 
 #Start off by making a folder on your computer that you are going to use to build everything. From now on we'll call it your "Phyflex" directory. Put it somewhere not too deep in your filesystem like in your home directory or Documents or Desktop. You're going to be changing directories a lot and you don't want to stray too far from home. Make sure not to put your Phyflex directory inside a git/mercurial repository. This directory is going to be filled by several Gigabytes of data. When you start this setup script it will prompt you for your Phyflex Directory.
 
-#For some of the 
+#Log everything that happens from now on in log.out
+#exec 3>&1 4>&2
+#trap 'exec 2>&4 1>&3' 0 1 2 3
+#exec 1>log.out 2>&1
+
+function pause()
+{
+   read -p "$*"
+}
+
 
 #Make sure that we have sudo permissons
-if [ $(id -u) != 0 ]; then
-  echo "This script requires root permissons!"
-  echo "Please run in an elevated terminal by using sudo -s"
-  exit
-fi
+#if [ $(id -u) != 0 ]; then
+#  echo "This script requires root permissons!"
+ # echo "Please run in an elevated terminal by using sudo -s"
+ # exit
+#fi
 
 #Handle command line arguments:
 #-p=* or --path=* to set your Phyflex Directory
-#-d or --download to force everything to be redownloaded from their URLs
+#-d or --download to force everything to be redownloaded from their URLs and unpacked
 PhyflexDir=0
 ReloadPackages="false"
+SkipToolchain="false"
+SkipBSP="false"
 for i in "$@"
 do
 case $i in
     -d|--download)
     ReloadPackages="true"
     ;;
+    -st|--skipToolchain)
+    SkipToolchain="true"
+    ;;
+    -sb|--skipBSP)
+    SkipBSP="true"
+    ;;
     -p=*|--path=*)
     PhyflexDir="${i#*=}"
-    ;;
     # -l=*|--lib=*)
     # DIR="${i#*=}"
     # ;;
@@ -68,8 +84,10 @@ echo $ReloadPackages
 
 #Set up a few variables to make sure we can safely rerun this script multiple times
 wgetargs=""
+tarargs="-k"
 if [ "$ReloadPackages" == "false" ]; then
   wgetargs="-nc"
+  tarargs=""
 fi
 
 #Ask user for Phyflex directory if they haven't already passed it as an arguement
@@ -109,113 +127,128 @@ wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3.tar.gz 'ftp://ft
 
 
 
-#cd into your Phyflex Directory and unzip these packages
+#cd into your Phyflex Directory and unzip these packages if they havne't been unzipped
 
 cd $PhyflexDir
-tar -jxvf ptxdist-2011.11.0.tar.bz2
-tar -jxvf ptxdist-2012.03.0.tar.bz2
-tar -jxvf OSELAS.Toolchain-2011.11.1.tar.bz2
-tar -xvf BSP-Phytec-phyFLEX-i.MX6-PD13.2.3.tar.gz
+[ ! -d $PhyflexDir/ptxdist-2011.11.0 ] && ( tar $tarargs -jxvf ptxdist-2011.11.0.tar.bz2)
+[ ! -d $PhyflexDir/ptxdist-2012.03.0 ] && (tar $tarargs -jxvf ptxdist-2012.03.0.tar.bz2)
+[ ! -d $PhyflexDir/OSELAS.Toolchain-2011.11.1 ] && (tar $tarargs -jxvf OSELAS.Toolchain-2011.11.1.tar.bz2)
+[ ! -d $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3 ] && (tar $tarargs -xvf BSP-Phytec-phyFLEX-i.MX6-PD13.2.3.tar.gz)
 #
 
 #install all the dependancies you will need to build ptxDist.
 #ptxdist is the system we will use to build the Toolchain and BSP we will build and install two different versions ptxdist-2011.11.0 for the Toolchain and ptxdist-2012.03.0 for the BSP.
 
-apt-get -y install libncurses-dev gawk flex bison texinfo gettex
+sudo apt-get -y install libncurses-dev gawk flex bison texinfo gettext
 
 #get the stanard linux build tools (g++,etc...) if you don't already have it
 
-apt-get -y install buildessential
+sudo apt-get -y install build-essential
 
 #cd into ptxdist-2011.11.0 and install it
 
-cd ptxdist-2011.11.0
-./configure
-make
-make install
+#if [ (ptxdist-2011.11.0 --version) !=  ]
+if [ ! -x "/usr/local/lib/ptxdist-2011.11.0/bin/ptxdist" ]; then
+ cd ptxdist-2011.11.0
+ ./configure
+ make
+ sudo make install
+fi
 
 #cd into ptxdist-2012.03.0 and do the same
 
-cd ../ptxdist-2012.03.0
-./configure
-make
-make install
 
-#Now build the toolchain with ptxdist-2011.11.0 from the Toolchain directory and go to lunch
+if [ ! -x "/usr/local/lib/ptxdist-2012.03.0/bin/ptxdist" ]; then
+ cd ../ptxdist-2012.03.0
+ ./configure
+ make
+ make install
+ source ~/.bashrc
+fi
 
-cd $PhyflexDir/OSELAS.Toolchain-2011.11.1
-ptxdist-2011.11.0 select ptxconfigs/arm-cortexa9-linux-gnueabi_gcc-4.6.2_glibc-2.14.1_binutils-2.21.1a_kernel-2.6.39-sanitized.ptxconfig
-echo "This is going to take a while. GO EAT LUNCH"
-ptxdist-2011.11.0 go
-echo "It Finished. Hope lunch was good."
+if [ "$SkipToolchain" == "false" ]; then 
+ # Make a new directory for the toolchain to be built in and give it read/write permissions. This is done for you if you call ptxdist-2011.11.0 go from the terminal, but doing so takes some user input so I've automated that step fully here.
 
-#Add the toolchain binaries to your path directory. This will make all of the toolchain files globally accessible.
+ sudo mkdir -p -m 777 /opt/OSELAS.Toolchain-2011.11.1/arm-cortexa9-linux-gnueabi/gcc-4.6.2-glibc-2.14.1-binutils-2.21.1a-kernel-2.6.39-sanitized
 
-printf '\n%s\n' 'export PATH=$PATH:/opt/OSELAS.Toolchain-2011.11.1/arm-cortexa9-linux-gnueabi/gcc-4.6.2-glibc-2.14.1-binutils-2.21.1a-kernel-2.6.39-sanitized/bin/' >> ~/.bashrc 
+ # Install autoconf. The toolchain build system needs it.
 
-#Now resource bashsrc so that the changes are made inside this terminal
+ sudo apt-get -y install autoconf
 
-source ~/.bashrc
+ #Now build the toolchain with ptxdist-2011.11.0 from the Toolchain directory and go to lunch
 
-#We need to download a few packages and stick them in the src folder of our BSP directory. The BSP build system has some broken links in it. So we we need to make sure that we download the packages that we need before we build the BSP. Otherwise the build system will throw an error in the middle of the build process.
+ cd $PhyflexDir/OSELAS.Toolchain-2011.11.1
+ ptxdist-2011.11.0 select ptxconfigs/arm-cortexa9-linux-gnueabi_gcc-4.6.2_glibc-2.14.1_binutils-2.21.1a_kernel-2.6.39-sanitized.ptxconfig
+ echo "This is going to take a while. GO EAT LUNCH"
+ ptxdist-2011.11.0 go
+ pause "HERE"
+ echo "It Finished. Hope lunch was good."
 
-wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/pure-ftpd-1.0.32.tar.bz2 'http://pkgs.fedoraproject.org/repo/pkgs/procps/procps-3.2.8.tar.gz/9532714b6846013ca9898984ba4cd7e0/procps-3.2.8.tar.gz'
+ #Add the toolchain binaries to your path directory. This will make all of the toolchain files globally accessible.
 
-wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/procps-3.2.8.tar.gz 'http://pkgs.fedoraproject.org/repo/pkgs/procps/procps-3.2.8.tar.gz/9532714b6846013ca9898984ba4cd7e0/procps-3.2.8.tar.gz'
+ printf '\n%s\n' 'export PATH=$PATH:/opt/OSELAS.Toolchain-2011.11.1/arm-cortexa9-linux-gnueabi/gcc-4.6.2-glibc-2.14.1-binutils-2.21.1a-kernel-2.6.39-sanitized/bin/' >> ~/.bashrc 
 
-wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/splashutils-lite-1.5.4.3.tar.bz2 'http://iweb.dl.sourceforge.net/project/fbsplash.berlios/splashutils-lite-1.5.4.3.tar.bz2'
 
-wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/srcpekwm-0.1.12.tar.gz 'http://pkgs.fedoraproject.org/repo/pkgs/pekwm/pekwm-0.1.12.tar.gz/1f7f9ed32cc03f565a3ad30fd6045c1f/pekwm-0.1.12.tar.gz'
+ #Now resource bashsrc so that the changes are made inside this terminal
 
-wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/qt-everywhere-opensource-src-4.7.4.tar.gz 'http://anychimirror101.mirrors.tds.net/pub/Qt/archive/qt/4.7/qt-everywhere-opensource-src-4.7.4.tar.gz'
+ source ~/.bashrc
+fi
 
-wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/arora-0.11.0.tar.gz 'http://pkgs.fedoraproject.org/lookaside/pkgs/arora/arora-0.11.0.tar.gz/64334ce4198861471cad9316d841f0cb/arora-0.11.0.tar.gz'
+if [ "$SkipBSP" == "false" ]; then
+ #We need to download a few packages and stick them in the src folder of our BSP directory. The BSP build system has some broken links in it. So we we need to make sure that we download the packages that we need before we build the BSP. Otherwise the build system will throw an error in the middle of the build process.
 
-wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/e2fsprogs-1.42.tar.gz 'http://pkgs.fedoraproject.org/repo/pkgs/e2fsprogs/e2fsprogs-1.42.tar.gz/md5/a3c4ffd7352310ab5e9412965d575610/e2fsprogs-1.42.tar.gz'
+ wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/pure-ftpd-1.0.32.tar.bz2 'http://pkgs.fedoraproject.org/repo/pkgs/procps/procps-3.2.8.tar.gz/9532714b6846013ca9898984ba4cd7e0/procps-3.2.8.tar.gz'
 
-wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/kmod-5.tar.xz 'http://pkgs.fedoraproject.org/repo/pkgs/kmod/kmod-5.tar.xz/b271c2ec54aba1c67bda63c8579d8c15/kmod-5.tar.xz'
+ wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/procps-3.2.8.tar.gz 'http://pkgs.fedoraproject.org/repo/pkgs/procps/procps-3.2.8.tar.gz/9532714b6846013ca9898984ba4cd7e0/procps-3.2.8.tar.gz'
 
-wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/sysstat-9.0.3.tar.gz 'http://repository.timesys.com/buildsources/s/sysstat/sysstat-9.0.3/sysstat-9.0.3.tar.gz'
+ wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/splashutils-lite-1.5.4.3.tar.bz2 'http://iweb.dl.sourceforge.net/project/fbsplash.berlios/splashutils-lite-1.5.4.3.tar.bz2'
 
-#Now build the BSP with ptxdist-2012.03.0 from the BSP directory and go home this will take several hours
+ wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/srcpekwm-0.1.12.tar.gz 'http://pkgs.fedoraproject.org/repo/pkgs/pekwm/pekwm-0.1.12.tar.gz/1f7f9ed32cc03f565a3ad30fd6045c1f/pekwm-0.1.12.tar.gz'
 
-cd $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3
-ptxdist-2012.03.0 select configs/ptxconfig
-ptxdist-2012.03.0 platform configs/phyFLEX-i.MX6/platformconfig
-echo "This is going to take a long time probably 'many' hours. Just let it do its thing over night"
-ptxdist-2012.03.0 go
-echo "It finished. Hopefully sucessfully. If not just run the last three lines again."
+ wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/qt-everywhere-opensource-src-4.7.4.tar.gz 'http://anychimirror101.mirrors.tds.net/pub/Qt/archive/qt/4.7/qt-everywhere-opensource-src-4.7.4.tar.gz'
 
-#Now build the BSP images. This just packs together the root filesystem, the Linux kernel, and the barebox shell into mountable images and packages.
+ wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/arora-0.11.0.tar.gz 'http://pkgs.fedoraproject.org/lookaside/pkgs/arora/arora-0.11.0.tar.gz/64334ce4198861471cad9316d841f0cb/arora-0.11.0.tar.gz'
 
-ptxdist-2012.03.0 images
+ wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/e2fsprogs-1.42.tar.gz 'http://pkgs.fedoraproject.org/repo/pkgs/e2fsprogs/e2fsprogs-1.42.tar.gz/md5/a3c4ffd7352310ab5e9412965d575610/e2fsprogs-1.42.tar.gz'
+
+ wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/kmod-5.tar.xz 'http://pkgs.fedoraproject.org/repo/pkgs/kmod/kmod-5.tar.xz/b271c2ec54aba1c67bda63c8579d8c15/kmod-5.tar.xz'
+
+ wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/sysstat-9.0.3.tar.gz 'http://repository.timesys.com/buildsources/s/sysstat/sysstat-9.0.3/sysstat-9.0.3.tar.gz'
+
+ #Now build the BSP with ptxdist-2012.03.0 from the BSP directory and go home this will take several hours
+
+ cd $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3
+ ptxdist-2012.03.0 select configs/ptxconfig
+ ptxdist-2012.03.0 platform configs/phyFLEX-i.MX6/platformconfig
+ echo "This is going to take a long time probably 'many' hours. Just let it do its thing over night"
+ ptxdist-2012.03.0 go
+ echo "It finished. Hopefully sucessfully. If not just run the last three lines again."
+
+ #Now build the BSP images. This just packs together the root filesystem, the Linux kernel, and the barebox shell into mountable images and packages.
+
+ ptxdist-2012.03.0 images
+fi
 
 #Install the eclipse-platform (which is barebones eclipse IDE) and the CDT package (which is the the C/C++ tool system)
 
-apt-get install eclipse-platform eclipse-cdt
-apt-get install minicom
+sudo apt-get -y install eclipse-platform eclipse-cdt
+sudo apt-get -y install minicom
 
 #Install tftpd server. We use this to get our built images onto the board.
-apt-get install tftpd-hpa
+sudo apt-get -y install tftpd-hpa
 
-#Erase /etc/default/tftpd-hpa and replace its contents with the following. The important part is that TFTP_DIRECTORY is set to where be built the images.
-> /etc/default/tftpd-hpa
-cat >/etc/default/tftpd-hpa<<EOL
-# /etc/default/tftpd-hpa 
-
-TFTP_USERNAME="tftp"
-#TFTP_DIRECTORY="/var/lib/tftpboot"
-TFTP_DIRECTORY="${PhyflexDir}/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/platform-phyFLEX-i.MX6/images"
-TFTP_ADDRESS="0.0.0.0:69"
-TFTP_OPTIONS="--secure"
-EOL
+#Erase /etc/default/tftpd-hpa and replace its contents with the following. The important part is that TFTP_DIRECTORY is set to where be built the images. Check tftp_setup.sh to see the code.
+sudo $DIR/tftp_setup.sh
 
 #Now unzip the qt plugin for eclipse into the eclipse directory. Note that this plugin is almost certainly useless. The reason phytec reccommends using it probably has to do with how they configure their HelloWorld project, but we'll just unpack it for good measure.
 
 #cd $PhyflexDir
 #tar -xvzf qt-eclipse-integration-linux.x86-1.6.1.tar.gz -C /usr/lib
 
-
+read -r -p "Would you like to run netconfig.sh now to setup a static IP address for the Phyflex i.MX6, give this host machine ssh permissions on the board, and configure your project for development via network connection? [y/n]" response
+if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
+ ./netconfig.sh
+fi
 
 
 #sed -i 's/192.168.3.11/123.123.1.23/g' .cdtbuild
