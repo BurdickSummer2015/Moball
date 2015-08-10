@@ -34,10 +34,16 @@ echo "NET WORK CONFIGURATION HAS STARTED!"
 echo "You will need a valid Static IP address inside your network to dedicate to to the Phyflex i.MX6. You should contact your network adminstrator to get one. If you have already gotten one, then you can enter it now. Or you can enter [d] to generate a list of available ip addresses on your ethernet network, and then pick one you like. But be warned, this method may open you up to IP address conflicts with other machines on your network."
 OK=0
 
+#Make git ignore changes to ip_settings
+git update-index --assume-unchanged scripts/ip_settings
+
+#source from ip_settings to check for old settings
 . scripts/ip_settings
+
 #Get the Host's IP address
 ip=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
 
+#Enter a static IP for the board
 skp=0
 if (valid_ip $BoardStaticIP); then
  read -r -p "Would you like to use the previously configured IP: $BoardStaticIP [y/n]" response
