@@ -34,7 +34,7 @@ echo "NET WORK CONFIGURATION HAS STARTED!"
 echo "You will need a valid Static IP address inside your network to dedicate to to the Phyflex i.MX6. You should contact your network adminstrator to get one. If you have already gotten one, then you can enter it now. Or you can enter [d] to generate a list of available ip addresses on your ethernet network, and then pick one you like. But be warned, this method may open you up to IP address conflicts with other machines on your network."
 OK=0
 
-. ip_settings
+. scripts/ip_settings
 #Get the Host's IP address
 ip=$(/sbin/ip -o -4 addr list eth0 | awk '{print $4}' | cut -d/ -f1)
 
@@ -76,7 +76,7 @@ echo "gateway=$ip"
 echo "serverip=$ip"
 echo 
 echo "Then you will need to boot the board"
-echo "Pinging Static IP: $BoardStaticIP"
+echo "Pinging Static IP: $BoardStaticIP ..."
 echo
 
 OK=0
@@ -90,7 +90,7 @@ while [ $OK -lt 1 ]; do
   fi
 done
 
-sed -i "s/BoardStaticIP=.*/BoardStaticIP=$BoardStaticIP/g" ip_settings
+sed -i "s/BoardStaticIP=.*/BoardStaticIP=$BoardStaticIP/g" scripts/ip_settings
 
 if [ -a "$HOME/.ssh/id_rsa.pub" ]; then
   echo "Public key found..."

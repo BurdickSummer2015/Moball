@@ -239,7 +239,7 @@ sudo apt-get -y install minicom
 sudo apt-get -y install tftpd-hpa
 
 #Erase /etc/default/tftpd-hpa and replace its contents with the following. The important part is that TFTP_DIRECTORY is set to where be built the images. Check tftp_setup.sh to see the code.
-sudo $DIR/tftp_setup.sh
+sudo $DIR/scripts/tftp_setup.sh
 
 #Now unzip the qt plugin for eclipse into the eclipse directory. Note that this plugin is almost certainly useless. The reason phytec reccommends using it probably has to do with how they configure their HelloWorld project, but we'll just unpack it for good measure.
 
