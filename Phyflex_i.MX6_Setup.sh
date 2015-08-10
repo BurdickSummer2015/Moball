@@ -35,6 +35,9 @@
 #trap 'exec 2>&4 1>&3' 0 1 2 3
 #exec 1>log.out 2>&1
 
+#Get the directory that this script is in
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
 function pause()
 {
    read -p "$*"
@@ -214,7 +217,7 @@ if [ "$SkipBSP" == "false" ]; then
 
  wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/sysstat-9.0.3.tar.gz 'http://repository.timesys.com/buildsources/s/sysstat/sysstat-9.0.3/sysstat-9.0.3.tar.gz'
 
-sudo apt-get -y install libxml-parser-perl
+sudo apt-get -y install libxml-parser-perl lzop
 
  #Now build the BSP with ptxdist-2012.03.0 from the BSP directory and go home this will take several hours
 

@@ -56,7 +56,7 @@ clean:
 	-@echo ' '
 
 post-build:
-	-scp ./Moball root@131.215.101.177:/home/.
+	-../scripts/copy-to-board.sh ../scripts/ip_settings ./Moball
 	-@echo ' '
 
 .PHONY: all clean dependents

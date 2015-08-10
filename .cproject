@@ -15,7 +15,7 @@
 </extensions>
 </storageModule>
 <storageModule moduleId="cdtBuildSystem" version="4.0.0">
-<configuration artifactName="Moball" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.exe.debug.1107701594" name="Debug" parent="cdt.managedbuild.config.gnu.exe.debug" postbuildStep=". ip_settings; scp ./Moball root@$BoardStaticIP:/home/. ">
+<configuration artifactName="Moball" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.exe.debug.1107701594" name="Debug" parent="cdt.managedbuild.config.gnu.exe.debug" postbuildStep="../scripts/copy-to-board.sh ../scripts/ip_settings ./Moball">
 <folderInfo id="cdt.managedbuild.config.gnu.exe.debug.1107701594." name="/" resourcePath="">
 <toolChain id="cdt.managedbuild.toolchain.gnu.exe.debug.1692585350" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.exe.debug">
 <targetPlatform id="cdt.managedbuild.target.gnu.platform.exe.debug.2081142763" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.debug"/>
