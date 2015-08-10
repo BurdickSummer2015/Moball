@@ -124,7 +124,11 @@ while [ $OK -lt 1 ]; do
   echo "ssh $(id -un)@$ip"
   echo
   echo "This will add you to the list of known hosts on the board and ssh should work."
-  pause "Once you are done, press any key to try to connect again..."
+  echo "If this does not work try removing the known_hosts file so that your Host Machine does not freak out with this line:"
+  echo
+  echo "rm $HOME/.ssh/known_hosts"
+  echo
+  pause "Once you have done either of these, press any key to try to connect again..."
  fi
 done
 
