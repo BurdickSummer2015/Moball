@@ -55,6 +55,9 @@ if [ $skp -lt 1 ]; then
    # elif ("$BoardStaticIP" == "d"); then
    elif [ "$BoardStaticIP" == "d" ]; then
    	#get your ip address
+	echo "Checking for nmap..."
+	sudo apt-get -qq install nmap
+        echo "Running nmap..."
    	sudo nmap -v -sn -n $ip/24 -oG - | awk '/Status: Down/{print $2}'
    else
      	echo "Invalid IP"
