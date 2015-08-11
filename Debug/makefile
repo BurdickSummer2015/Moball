@@ -45,7 +45,7 @@ all: Moball
 Moball: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	arm-cortexa9-linux-gnueabi-gcc -pthread -lrt -o"Moball" $(OBJS) $(USER_OBJS) $(LIBS)
+	arm-cortexa9-linux-gnueabi-g++ -pthread -lrt -o"Moball" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 	$(MAKE) --no-print-directory post-build

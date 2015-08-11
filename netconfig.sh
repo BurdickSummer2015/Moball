@@ -5,6 +5,7 @@
 #File name: netconfig.sh
 #Purpose: Sets up a static IP address with the the Phyflex.i.MX6, sets up ssh permissions between the Host and Phyflex board, and saves the the static IP in ip_settings so that the eclipse project can read it.
 
+echo "rm $HOME/.ssh/known_hosts"
 
 function pause()
 {
@@ -124,11 +125,15 @@ while [ $OK -lt 1 ]; do
   echo "ssh $(id -un)@$ip"
   echo
   echo "This will add you to the list of known hosts on the board and ssh should work."
-  echo "If this does not work try removing the known_hosts file so that your Host Machine does not freak out with this line:"
+  echo "If this does not work try removing the known_hosts file or the offending key so that your Host Machine does not freak out. Run either:"
+  echo
+  echo "ssh-keygen -R $BoardStaticIP"
+  echo 
+  echo "or"
   echo
   echo "rm $HOME/.ssh/known_hosts"
   echo
-  pause "Once you have done either of these, press any key to try to connect again..."
+  pause "Once you have done one or all of these, press any key to try to connect again..."
  fi
 done
 
