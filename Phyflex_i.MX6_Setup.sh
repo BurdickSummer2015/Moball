@@ -198,7 +198,7 @@ fi
 if [ "$SkipBSP" == "false" ]; then
  #We need to download a few packages and stick them in the src folder of our BSP directory. The BSP build system has some broken links in it. So we we need to make sure that we download the packages that we need before we build the BSP. Otherwise the build system will throw an error in the middle of the build process.
 
- wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/pure-ftpd-1.0.32.tar.bz2 'http://pkgs.fedoraproject.org/repo/pkgs/procps/procps-3.2.8.tar.gz/9532714b6846013ca9898984ba4cd7e0/procps-3.2.8.tar.gz'
+ wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/pure-ftpd-1.0.32.tar.bz2 'http://download.pureftpd.org/pure-ftpd/releases/obsolete/pure-ftpd-1.0.32.tar.bz2'
 
  wget $wgetargs -O $PhyflexDir/BSP-Phytec-phyFLEX-i.MX6-PD13.2.3/src/procps-3.2.8.tar.gz 'http://pkgs.fedoraproject.org/repo/pkgs/procps/procps-3.2.8.tar.gz/9532714b6846013ca9898984ba4cd7e0/procps-3.2.8.tar.gz'
 
