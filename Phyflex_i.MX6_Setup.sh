@@ -133,6 +133,17 @@ sudo apt-get -y install libncurses-dev gawk flex bison texinfo gettext
 
 sudo apt-get -y install build-essential
 
+#Install the eclipse-platform (which is barebones eclipse IDE) and the CDT package (which is the the C/C++ tool system)
+
+sudo apt-get -y install eclipse-platform eclipse-cdt
+sudo apt-get -y install minicom
+
+#Install tftpd server. We use this to get our built images onto the board.
+sudo apt-get -y install tftpd-hpa
+
+#Erase /etc/default/tftpd-hpa and replace its contents with the following. The important part is that TFTP_DIRECTORY is set to where we built the images. Check tftp_setup.sh to see the code.
+sudo $DIR/scripts/tftp_setup.sh
+
 #If it doesn't already exist cd into ptxdist-2011.11.0 and install it
 
 #if [ (ptxdist-2011.11.0 --version) !=  ]
@@ -221,16 +232,7 @@ sudo apt-get -y install libxml-parser-perl lzop
  ptxdist-2012.03.0 images
 fi
 
-#Install the eclipse-platform (which is barebones eclipse IDE) and the CDT package (which is the the C/C++ tool system)
 
-sudo apt-get -y install eclipse-platform eclipse-cdt
-sudo apt-get -y install minicom
-
-#Install tftpd server. We use this to get our built images onto the board.
-sudo apt-get -y install tftpd-hpa
-
-#Erase /etc/default/tftpd-hpa and replace its contents with the following. The important part is that TFTP_DIRECTORY is set to where we built the images. Check tftp_setup.sh to see the code.
-sudo $DIR/scripts/tftp_setup.sh
 
 #Old code for qt-plugin
 
