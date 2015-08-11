@@ -151,7 +151,7 @@ if [ ! -x "/usr/local/lib/ptxdist-2012.03.0/bin/ptxdist" ]; then
  cd ../ptxdist-2012.03.0
  ./configure
  make
- make install
+ sudo make install
  #source .bashrc so that ptxdist-2012.03.0 is globally available
  source ~/.bashrc
 fi
