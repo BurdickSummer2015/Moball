@@ -192,10 +192,12 @@ if [ "$SkipToolchain" == "false" ]; then
 
  #Add the toolchain binaries to your path directory. This will make all of the toolchain files globally accessible.
 
+ #But first remove any old additions 
+ sed -i "/\b\(OSELAS.Toolchain-2011.11.1\)\b/d" ~/.bashrc 
  printf '\n%s\n' 'export PATH=$PATH:/opt/OSELAS.Toolchain-2011.11.1/arm-cortexa9-linux-gnueabi/gcc-4.6.2-glibc-2.14.1-binutils-2.21.1a-kernel-2.6.39-sanitized/bin/' >> ~/.bashrc 
 
 
- #Now resource bashsrc so that the changes are made inside this terminal
+ #Now resource bashrc so that the changes are made inside this terminal
 
  source ~/.bashrc
 fi
