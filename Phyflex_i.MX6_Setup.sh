@@ -248,7 +248,7 @@ fi
 
 read -r -p "Would you like to run netconfig.sh now to setup a static IP address for the Phyflex i.MX6, give this host machine ssh permissions on the board, and configure your project for development via network connection? [y/n]" response
 if [[ $response =~ ^([yY][eE][sS]|[yY])$ ]]; then
- ./netconfig.sh
+ $DIR/netconfig.sh
 fi
 
 

@@ -8,9 +8,9 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
--include subdir.mk
--include src/subdir.mk
 -include src/arch/linux/subdir.mk
+-include src/subdir.mk
+-include subdir.mk
 -include objects.mk
 
 ifneq ($(MAKECMDGOALS),clean)
@@ -45,7 +45,7 @@ all: Moball
 Moball: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	arm-cortexa9-linux-gnueabi-g++ -pthread -lrt -o"Moball" $(OBJS) $(USER_OBJS) $(LIBS)
+	arm-cortexa9-linux-gnueabi-g++ -pthread -lrt -o "Moball" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 	$(MAKE) --no-print-directory post-build

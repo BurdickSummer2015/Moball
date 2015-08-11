@@ -28,6 +28,8 @@ int main()
 		COM_PORT,
 		BAUD_RATE);
 
+	printf("IM A GANGSTA");
+
 	/* Make sure the user has permission to use the COM port. */
 	if (errorCode == VNERR_PERMISSION_DENIED) {
 
@@ -46,7 +48,7 @@ int main()
 	//printf("Yaw, Pitch, Roll\n");
 	printf("Quaternion x, Quaternion y, Quaternion z, Quaternion w \n");
 
-	for (i = 0; i < 1000; i++)
+	for (i = 0; i < 1; i++)
 	{
 
 		/* Query the YawPitchRoll register of the VN-100. Note this method of
