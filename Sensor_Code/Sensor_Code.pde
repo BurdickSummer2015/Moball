@@ -13,6 +13,7 @@ char* USB_FILE_REQUEST_PATTERN = "RQFL:";
 char* USB_CLOCK_SYNC_PATTERN = "CLKS:";
 char* USB_READY_FOR_INPUT = "Waspmote ready for input...";
 char USB_COMMAND_END_PATTERN = '!';
+char EOT = 0x04;
 
 int KEY_LENGTH = 4;
 
@@ -106,13 +107,14 @@ void loop()
     PWR.deepSleep("00:00:00:02", RTC_OFFSET, RTC_ALM1_MODE2,ALL_OFF);// Sleep
 
     SD.ON(); // sets the corresponding pins as inputs
-    USB.flush();
+    //USB.flush();
+    delay(100);
     USB.println(USB_READY_FOR_INPUT);
     parseInput(10000);
   }
 }
 
-void writeFileOverUSB(char*file, uint32_t start=0, int32_t numBytes=-1){
+void writeFileOverUSB(char*file, char &checksum,uint32_t start=0, int32_t numBytes=-1){
   int fileFound=SD.isFile(file);
   if(fileFound != 1){
     USB.printf( "File %s not found", file);
@@ -128,14 +130,20 @@ void writeFileOverUSB(char*file, uint32_t start=0, int32_t numBytes=-1){
   for( uint32_t i=start; i<finish; i += 127 ){  
     //Read from SD card
     dataRead = SD.cat(file, i, 127); //Max bytes that can be read at once
+    for(int j=0;j < strlen(dataRead);j++){
+      checksum ^= dataRead[j];
+      //USB.printf("CHECKSUM,%i,%i\n",checksum,dataRead[j]);
+    }
     USB.printf("%s",dataRead);
   }
 }
 
 void answerFileRequest(char*key, char*file, uint32_t start=0, int32_t numBytes=-1){
+  char checksum =0;
   USB.printf("%s0",key);
-  writeFileOverUSB(file, start, numBytes);
-  USB.printf("%s1",key);
+  writeFileOverUSB(file, checksum,start, numBytes);
+  //USB.printf("%c", EOT);
+  USB.printf("%s%c",key, checksum);
 }
 
 void parseInput(unsigned long timeout=0){
@@ -166,12 +174,14 @@ void parseInput(unsigned long timeout=0){
           endBytes=0;
           if(fileRequestBytes ==strlen(USB_FILE_REQUEST_PATTERN)){
             parseFileRequest();
+            fileRequestBytes = 0;
           }
         }else if(val == USB_CLOCK_SYNC_PATTERN[clockSyncBytes]){
             clockSyncBytes++;
             fileRequestBytes=0;
             endBytes=0;
             if(clockSyncBytes ==strlen(USB_CLOCK_SYNC_PATTERN)){
+              clockSyncBytes = 0;
               parseClockSync();
             }
           }else if(val == USB_END_PATTERN[endBytes]){
@@ -233,36 +243,46 @@ void parseFileRequest(){
   USB.println(readBuffer);
   //SRT&RQFL:13-01-11,sdfd,0,-1!
 }
-//SRT&CLKS:15:08:13:05:14:15:00!RQFL:13-01-11,sdfd,0,-1!END&
+//SRT&CLKS:15:08:13:05:14:15:00!RQFL:15-08-13,sdfd,0,-1!END&
 
 void parseClockSync(){
   char readBuffer[30];
   int len =0;
-  char clockStr[30];  
+  //char clockStr[40];  
   while(USB.available() > 0) {
     char val = USB.read();
-
-    if(val != ',' && val != USB_COMMAND_END_PATTERN){
+    //USB.print(val,BYTE);
+    if(val != USB_COMMAND_END_PATTERN){
       readBuffer[len++] = val;
     }else{
       readBuffer[len++] = '\0';
-      strncpy(clockStr, readBuffer, len );
+     // strncpy(clockStr, readBuffer, len );
       if(val == USB_COMMAND_END_PATTERN){
         char filename[13];
-        sprintf(filename,"%02u-%02u-%02u",RTC.year, RTC.month, RTC.date);
-        sprintf(toWrite, "#%lu Sync from %02u:%02u:%02u:%02u:%02u:%02u:%02u  ->  %s", entryNum, RTC.year, RTC.month, RTC.date, RTC.day, RTC.hour, RTC.minute, RTC.second, clockStr);
+        char currentTime[30];
+        sprintf(currentTime, "%02u:%02u:%02u:%02u:%02u:%02u:%02u",RTC.year, RTC.month, RTC.date, RTC.day, RTC.hour, RTC.minute, RTC.second);
+        if(strcmp(currentTime,readBuffer)!=0){
+          int err = RTC.setTime(readBuffer);
+          char* mesg="Successful Sync";
+          if(err == 1)mesg = "Failed Sync";
+          sprintf(filename,"%02u-%02u-%02u",RTC.year, RTC.month, RTC.date);
+          sprintf(toWrite, "#%lu %s %s  ->  %s", entryNum, mesg, currentTime, readBuffer);
+  
+          writeline("log", toWrite);
+          writeline(filename, toWrite);
+          incrementEntry();
+        }else{
+          sprintf(toWrite, "#Sync was attempted at %s but was unecessary", currentTime);
+          writeline("log", toWrite);
+        }
 
-        writeline("log", toWrite);
-        writeline(filename, toWrite);
-        incrementEntry();
-
-        RTC.setTime(clockStr);
+        
         return;
       }
     }
   }
   USB.println(readBuffer);
-  USB.println("FINISHED!");
+  USB.println("FIN");
   //SRT&CLKS:15:08:13:05:14:15:00!
 }
 

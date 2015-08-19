@@ -1331,7 +1331,7 @@
 <tool id="cdt.managedbuild.tool.gnu.c.linker.exe.debug.1964088364" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.debug"/>
 <tool command="g++" commandLinePattern="${COMMAND} ${OUTPUT_FLAG}${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}${FLAGS} " id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.1590056661" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug">
 <option id="gnu.cpp.link.option.flags.1203474218" name="Linker flags" superClass="gnu.cpp.link.option.flags" value="-pthread -lrt -lboost_system" valueType="string"/>
-<option id="gnu.cpp.link.option.libs.15917811" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs"/>
+<option id="gnu.cpp.link.option.libs.15917811" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs"/>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1974522704" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 <additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 <additionalInput kind="additionalinput" paths="$(LIBS)"/>

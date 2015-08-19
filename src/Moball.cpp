@@ -13,7 +13,8 @@
 
 
 /* Change the connection settings to your configuration. */
-const char* const COM_PORT = "//dev//ttyUSB0";
+const char* const PORT0 = "//dev//ttyUSB0";
+const char* const PORT1 = "//dev//ttyUSB1";
 const int BAUD_RATE = 115200;
 VnQuaternion quaternion;
 VN_ERROR_CODE errorCode;
@@ -23,10 +24,10 @@ Vn100 vn100;
 
 
 
-int initVectorNav(){
+int initVectorNav(const char* PORT){
 	errorCode = vn100_connect(
 		&vn100,
-		COM_PORT,
+		PORT,
 		BAUD_RATE);
 
 	/* Make sure the user has permission to use the COM port. */
@@ -66,16 +67,17 @@ int main()
 {
 
 	//VnYpr ypr;
+	const char* WASPPORT = PORT1;
+	if(initVectorNav(PORT0) != 0)return 1;
 
 	int i;
-	printf("TAAAAAA");
 	WaspmoteController *waspContHandle;
-	waspContHandle = new WaspmoteController;
+	waspContHandle = new WaspmoteController(WASPPORT);
 	//startWaspmoteThread();
 
 
 
-	initVectorNav();
+
 
 	//printf("Yaw, Pitch, Roll\n");
 	printf("Quaternion x, Quaternion y, Quaternion z, Quaternion w \n");
@@ -101,7 +103,6 @@ int main()
 	closeVectorNav();
 
 
-	printf("WWW");
 	while(1){
 
 	}
