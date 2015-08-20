@@ -1,0 +1,7 @@
+-To change between Eclipse configurations Project->Properties->Manage Configurations...->Set Active for example if you want to switch between Debug-Desktop and Debug you would do this
+-The full explanation for the waspmote stuff is in their files at the top
+-On this computer the waspmote IDE is in Documents/Moball/waspmote-pro-ide-v04-linux32. Then run sudo ./waspmote
+-You will need to do sudo ./Moball for desktop configurations
+-You need to compile something for the post-build step to work, so if it fails, clean the project and recompile
+-To adjust the timing of the waspmote, chanage SYNC_FREQ and REQ_FREQ in WaspmoteControll.cpp, and NUM_POLLS_BTW_INPUT and SLEEP_TIME in Sensor_Code.pde
+
