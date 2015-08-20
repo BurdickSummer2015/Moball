@@ -50,7 +50,7 @@ char USB_COMMAND_END_PATTERN = '!';
 char EOT = 0x04;
 
 int KEY_LENGTH = 4;
-int NUM_POLLS_BTW_INPUT=12
+int NUM_POLLS_BTW_INPUT=12;
 char * SLEEP_TIME = "00:00:00:02"
 
 // buffer to write into Sd File
