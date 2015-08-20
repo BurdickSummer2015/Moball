@@ -1,3 +1,37 @@
+/**
+ * \file
+ *
+ *
+ * \section DESCRIPTION
+ * This code makes the waspmote take measurements, go to sleep, and listen for input commands repeatedly.
+ * It can be compiled and flashed onto a waspmote pro V1.2 using the Waspmote pro IDE v04 (w/ Waspmote pro API v017)
+ * Be sure that both the switches next to the board are set to the left (ON), before flashing the code.
+ * For some time this program will allow the waspmote to listen to input commands.
+
+ * Commands have the form STR&<command>:<args>!,...,<command>:<args>!END&
+ * For example to sync the clock to the day that I wrote this and request all data from the
+ * corresponding file for that day I would send the following command to the waspmote:
+ * SRT&CLKS:15:08:19:04:18:58:10!RQFL:15-08-19,D3f5,0,-1!END&
+ * And if I wanted to do nothing
+ * SRT&END&
+ *
+ * Clock Sync commmands have the following form:
+ * CLKS:<year>:<month>:<date>:<day of week>:<hour>:<minute>:<second>!
+ *
+ * File request commmands have the following form:
+ * RQFL:<filename>,<transfer-key>,<firstbyte>,<#bytes to read>!
+ * Note that filename cannot be more than 8 characters and its .ext must be no more than 3.
+ *
+ * It is possible that this project will eventually use a different sensor interface all together
+ * if that is the case much of this code should still be salvagable as long as the protocol mentioned
+ * above is maintained. If a different sensor board will be used a few slight changes may need to be made
+ * to the code flashed onto the sensor board, but it should not require a large overhaul since the code
+ * on the sensor board is written in a dialect of C similar to what is used for arduinos. Of course
+ * if you are to connect sensors directly to the onboard computer then this code largely useless, save for
+ * the setup for creating new threads.
+ * Library.
+ */
+
 
 
 #include <WaspSensorGas_v20.h>
@@ -16,6 +50,8 @@ char USB_COMMAND_END_PATTERN = '!';
 char EOT = 0x04;
 
 int KEY_LENGTH = 4;
+int NUM_POLLS_BTW_INPUT=12
+char * SLEEP_TIME = "00:00:00:02"
 
 // buffer to write into Sd File
 char toWrite[200];
@@ -36,12 +72,16 @@ float humidityVal;
 //A key for all CSV files created (Edit appropriately as sensors are added);
 char* tableheader = "Entry, Date(YY:MM:SS), Time (HH:MM:SS), Pressure (kPa), Humidity (%RH)";
 
+//The entry number, increments as new entries are added
 unsigned long entryNum=0;
 
+//A few declarations just because I didn't want to define these at the beginning of the file
 void parseInput(unsigned long timeout);
 void writeFileOverUSB(char*file, uint32_t start, int32_t numBytes);
 void answerFileRequest(char*key, char*file, uint32_t start, int32_t numBytes);
 
+
+//Creates a new file. If addTableHeader is true then it automatically appends the table header
 void createFile(char*file, bool addTableHeader=true){
   sd_answer = SD.create(file);
 
@@ -53,17 +93,21 @@ void createFile(char*file, bool addTableHeader=true){
     USB.printf("%s not created\n", file);
   }
 }
+//Writes the value of the current entry to the "entry" file on the SD card so that if 
+//the board loses power it always knows what entry it is on.
 void saveEntryNum(){
   char entryStr[20];
   sprintf(entryStr, "%lu", entryNum);
   SD.writeSD("entry",entryStr,SD.indexOf("entry","entry=",0)+6);
 }
 
+//Increments the entrynum and saves it the the SD card
 void incrementEntry(){
   entryNum++;
   saveEntryNum();
 }
 
+//The main function for the program
 void setup()
 {
   // open USB port
@@ -72,18 +116,24 @@ void setup()
 
   // Set SD ON
   SD.ON();
-  //createDir("/data");
 
+  //Allows us to read and set the clock
   RTC.ON();
 
-  createFile("log",false);
+  //if it doesn't already exist create the file "log"
+  int fileFound=SD.isFile("log");
+  if(fileFound != 1){
+   createFile("log",false);
+  }
 
-  int fileFound=SD.isFile("entry");
+  //if it doesn't already exist create the file "entry" and add a couple lines to it
+  fileFound=SD.isFile("entry");
   if(fileFound != 1){
     createFile("entry",false);
     writeline("entry", "#Do NOT CHANGE THIS!");
     writeline("entry", "entry=0");
   }
+  //Initialize entryNum to the value that it finds in "entry"
   char* entryStr = SD.cat("entry", SD.indexOf("entry","entry=",0)+6, 20);
   entryNum = strtoul(entryStr,NULL, 0);
 }
@@ -92,28 +142,29 @@ void loop()
 {
   //Create a file following the 8.3 filename format (8 characters).(3 character extention)
   char filename[13];
-  sprintf(filename,"%02u-%02u-%02u",RTC.year, RTC.month, RTC.date);
+  sprintf(filename,"%02u-%02u-%02u",RTC.year, RTC.month, RTC.date);//It is simply today's date
   createFile(filename);
-  for(int i=0; i < 1; i++){  
+  for(int i=0; i < NUM_POLLS_BTW_INPUT; i++){  
     memset(toWrite, 0x00, sizeof(toWrite) );
-    takeMeasurements(toWrite);
+    takeMeasurements(toWrite); //Take measurements of the environment and write a line of CSV data to "toWrite"
     USB.println(toWrite);
-    writeline(filename, toWrite); 
-    incrementEntry();
-    SD.OFF();
+    writeline(filename, toWrite); //Write the CSV data to the file for today on the SD card
+    incrementEntry(); //Increment the entry to keep track of the order of writing
+    SD.OFF();//Turn off the SD card otherwise it will break when we put the board to sleep
     USB.println();
     USB.println();
 
-    PWR.deepSleep("00:00:00:02", RTC_OFFSET, RTC_ALM1_MODE2,ALL_OFF);// Sleep
+    PWR.deepSleep(SLEEP_TIME, RTC_OFFSET, RTC_ALM1_MODE2,ALL_OFF);// Go to sleep for the time you designated in SLEEP_TIME
 
     SD.ON(); // sets the corresponding pins as inputs
     //USB.flush();
     delay(100);
     USB.println(USB_READY_FOR_INPUT);
-    parseInput(10000);
+    parseInput(10000);//parse command input from the serial line
   }
 }
 
+//Reads data from the SD cards and sends it over usb
 void writeFileOverUSB(char*file, char &checksum,uint32_t start=0, int32_t numBytes=-1){
   int fileFound=SD.isFile(file);
   if(fileFound != 1){
@@ -121,31 +172,35 @@ void writeFileOverUSB(char*file, char &checksum,uint32_t start=0, int32_t numByt
     return;
   }
   if(numBytes == -1){
-    numBytes = SD.getFileSize(file);
+    numBytes = SD.getFileSize(file)-start; //If we've gotten a -1 then just read until the end
   }
   uint32_t len = (uint32_t)numBytes;
 
   char* dataRead;
   uint32_t finish = start+len;
   for( uint32_t i=start; i<finish; i += 127 ){  
-    //Read from SD card
+    //Read the file from SD card
     dataRead = SD.cat(file, i, 127); //Max bytes that can be read at once
     for(int j=0;j < strlen(dataRead);j++){
-      checksum ^= dataRead[j];
-      //USB.printf("CHECKSUM,%i,%i\n",checksum,dataRead[j]);
+      checksum ^= dataRead[j];//Accumilate the value of the checksum using XOR
     }
-    USB.printf("%s",dataRead);
+    USB.printf("%s",dataRead); //output the next 127 bytes of the file
   }
 }
 
+//Answers a file request for the following data with the following key and the following file
 void answerFileRequest(char*key, char*file, uint32_t start=0, int32_t numBytes=-1){
   char checksum =0;
-  USB.printf("%s0",key);
-  writeFileOverUSB(file, checksum,start, numBytes);
-  //USB.printf("%c", EOT);
-  USB.printf("%s%c",key, checksum);
+  USB.printf("%s0",key);//send the key followed by a zero, this is how the board will know where the file data begins
+  writeFileOverUSB(file, checksum,start, numBytes);//write the actually file data and accumilate the checksum
+  USB.printf("%s%c",key, checksum);//write the key again followed by the checksum.
 }
 
+//Reads input from the serial line
+//Starts reading commands when it encounters "STR&"
+//Pushes the parsing to parseFileRequest() if it encounters RQFL:
+//Pushes the parsing to parseClockSync() if it encounters CLKS:
+//Stops listening if it encounters "END&" or if its timout has passed
 void parseInput(unsigned long timeout=0){
   int startBytes=0;
   int endBytes=0;
@@ -198,7 +253,7 @@ void parseInput(unsigned long timeout=0){
   }
 }
 
-
+//Parses a file request (RQFL:) and answers it if possible
 void parseFileRequest(){
   char readBuffer[30];
   int len =0;
@@ -210,31 +265,31 @@ void parseFileRequest(){
   int32_t bytes;
   int argIndex =0;
   while(USB.available() > 0) {
-    char val = USB.read();
-    if(val != ',' && val != USB_COMMAND_END_PATTERN){
+    char val = USB.read();//read the next byte
+    if(val != ',' && val != USB_COMMAND_END_PATTERN){//We got data
       readBuffer[len++] = val;
     }
-    else{
+    else{//We got a ',' or a '!'
       readBuffer[len++] = '\0';
       switch(argIndex){
       case 0:
-        strncpy(file, readBuffer, len );
+        strncpy(file, readBuffer, len );//grab the name of the file from the read buffer
         break;
       case 1:
-        strncpy(key, readBuffer, len );
+        strncpy(key, readBuffer, len );//grab the key from the read buffer
         break;
       case 2:
-        strncpy(startStr, readBuffer, len );
+        strncpy(startStr, readBuffer, len );//grab the starting byte from the read buffer
         start = atoi(startStr);
         break;
       case 3:
-        strncpy(bytesStr, readBuffer, len );
+        strncpy(bytesStr, readBuffer, len );//grab the number of bytes to be read from the read buffer
         bytes = atoi(bytesStr);
         break;
       }
       len =0;
       argIndex++;
-      if(val == USB_COMMAND_END_PATTERN){
+      if(val == USB_COMMAND_END_PATTERN){//We got a '!' so stop reading
         answerFileRequest(key, file,start,bytes);
         return;
       }
@@ -245,44 +300,41 @@ void parseFileRequest(){
 }
 //SRT&CLKS:15:08:13:05:14:15:00!RQFL:15-08-13,sdfd,0,-1!END&
 
+//Parses a clock sync (CLKS:) and sets the clock to the inputted time
 void parseClockSync(){
   char readBuffer[30];
   int len =0;
-  //char clockStr[40];  
   while(USB.available() > 0) {
-    char val = USB.read();
-    //USB.print(val,BYTE);
-    if(val != USB_COMMAND_END_PATTERN){
+    char val = USB.read();//read the next byte
+    if(val != USB_COMMAND_END_PATTERN){//We got data
       readBuffer[len++] = val;
     }else{
       readBuffer[len++] = '\0';
-     // strncpy(clockStr, readBuffer, len );
-      if(val == USB_COMMAND_END_PATTERN){
+      if(val == USB_COMMAND_END_PATTERN){//We got a '!' 
         char filename[13];
         char currentTime[30];
         sprintf(currentTime, "%02u:%02u:%02u:%02u:%02u:%02u:%02u",RTC.year, RTC.month, RTC.date, RTC.day, RTC.hour, RTC.minute, RTC.second);
-        if(strcmp(currentTime,readBuffer)!=0){
-          int err = RTC.setTime(readBuffer);
+        if(strcmp(currentTime,readBuffer)!=0){ //If the current time and the inputed time are not the same
+          int err = RTC.setTime(readBuffer); //Set the time to the inputted time
+
+          //genrate a message incorperating the next entryNum that will keep a record of the fact that a sync was done
           char* mesg="Successful Sync";
           if(err == 1)mesg = "Failed Sync";
           sprintf(filename,"%02u-%02u-%02u",RTC.year, RTC.month, RTC.date);
           sprintf(toWrite, "#%lu %s %s  ->  %s", entryNum, mesg, currentTime, readBuffer);
   
-          writeline("log", toWrite);
-          writeline(filename, toWrite);
-          incrementEntry();
+          writeline("log", toWrite);//Write the message to the log
+          writeline(filename, toWrite);//Write the message to the file for today's date
+          incrementEntry();//Increment the entry
         }else{
+          //If the current time and inputed time are the same, then keep a record of the fact that it tried, but don't change anything
           sprintf(toWrite, "#Sync was attempted at %s but was unecessary", currentTime);
           writeline("log", toWrite);
         }
-
-        
         return;
       }
     }
   }
-  USB.println(readBuffer);
-  USB.println("FIN");
   //SRT&CLKS:15:08:13:05:14:15:00!
 }
 
@@ -311,6 +363,7 @@ void senseHumidity(){
 
 }
 
+
 void takeMeasurements(char*outputStr){
   // Turn on the sensor board
   SensorGasv20.ON();
@@ -322,6 +375,8 @@ void takeMeasurements(char*outputStr){
   // Turn off the sensor board
   SensorGasv20.OFF();
 
+
+  //write the measurements to strings
   char pressureStr[10];
   char humidityStr[10];
   Utils.float2String(pressureVal, pressureStr, 5);
@@ -331,10 +386,13 @@ void takeMeasurements(char*outputStr){
   USB.printf("Pressure:%s kPa \n",pressureStr);
   USB.printf("Humidity:%s %s \n",humidityStr, "%RH");
 
+  //Generate a line of CSV data for the measurements
   sprintf(outputStr, "%lu,%02u/%02u/%02u,%02u:%02u:%02u", entryNum,RTC.year, RTC.month, RTC.date, RTC.hour, RTC.minute, RTC.second);
   sprintf(outputStr, "%s,%s,%s",outputStr, pressureStr, humidityStr);
 
 }
+
+//Writes a line to the end of the designated file on the SD card
 void writeline(char*file, char*data){
   USB.println(file);
   sd_answer = SD.appendln(file, data);
@@ -346,7 +404,7 @@ void writeline(char*file, char*data){
 }
 
 
-
+//Creates a directory on the SD card
 void createDir(char*path){
   // create path
   sd_answer = SD.mkdir(path);
@@ -356,56 +414,6 @@ void createDir(char*path){
   }else{
     USB.printf("mkdir failed: %s", path);
   }
-
 }
 
-/*
-//Turn on everything that has been turned off by sleepFor()
-void wake(){
-  SD.ON();
-  RTC.ON();
-  delay(100);
-}*/
-
-/*
-int dynamicSetWatchdog(int seconds){
-  if(seconds >= 8){
-    PWR.setWatchdog(WTD_ON,WTD_8S);
-    seconds -= 8;
-  }else
-    if(seconds >= 4){
-      PWR.setWatchdog(WTD_ON,WTD_4S);
-      seconds -=4;
-    }else
-      if(seconds >= 2){
-        PWR.setWatchdog(WTD_ON,WTD_2S);
-        seconds -=2;
-      }else
-        if(seconds >= 1){
-          PWR.setWatchdog(WTD_ON,WTD_1S);
-          seconds -=1;
-        }
-  return seconds;
-}
-*/
-/*
-//Turn off everything for some number of seconds to conserve power
-void sleepFor(int seconds){
-  while(1){
-    seconds = dynamicSetWatchdog(seconds);
-    PWR.sleep(ALL_OFF);
-    if( intFlag & WTD_INT){
-      // clear flags
-      intFlag &= ~(WTD_INT);
-      if(seconds == 0){
-        intCounter = 0;
-        intArray[WTD_POS] = 0;
-        USB.print(RTC.getTime());
-        wake();
-        break;
-      }
-    }
-  }
-}
-*/
 

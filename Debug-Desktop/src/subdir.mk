@@ -5,7 +5,8 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
 ../src/Moball.cpp \
-../src/WaspmoteController.cpp 
+../src/WaspmoteController.cpp \
+../src/simple_serial.cpp 
 
 C_SRCS += \
 ../src/vn100.c \
@@ -15,6 +16,7 @@ C_SRCS += \
 OBJS += \
 ./src/Moball.o \
 ./src/WaspmoteController.o \
+./src/simple_serial.o \
 ./src/vn100.o \
 ./src/vn200.o \
 ./src/vndevice.o 
@@ -26,7 +28,8 @@ C_DEPS += \
 
 CPP_DEPS += \
 ./src/Moball.d \
-./src/WaspmoteController.d 
+./src/WaspmoteController.d \
+./src/simple_serial.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

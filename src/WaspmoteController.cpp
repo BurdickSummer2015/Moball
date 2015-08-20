@@ -1,182 +1,68 @@
+/**
+ * \file
+ *
+ *
+ * \section DESCRIPTION
+ * This controller creates a new thread to listen for when the waspmote is ready for input.
+ * When the waspmote is ready it sends commands to either Sync the clock on the board with
+ * the clock on the waspmote or it sends a command to request a file from the waspmote's
+ * SD card. In the latter case when the file is sent the controller reads it and writes it to
+ * a file. Eventually instead of writing the data to a file it will send the file wirelessly
+ * to a server.
+ * Commands have the form STR&<command>:<args>!,...,<command>:<args>!END&
+ * For example to sync the clock to the day that I wrote this and request all data from the
+ * corresponding file for that day I would send the following command to the waspmote:
+ * SRT&CLKS:15:08:19:04:18:58:10!RQFL:15-08-19,D3f5,0,-1!END&
+ * And if I wanted to do nothing
+ * SRT&END&
+ *
+ * Clock Sync commmands have the following form:
+ * CLKS:<year>:<month>:<date>:<day of week>:<hour>:<minute>:<second>!
+ *
+ * File request commmands have the following form:
+ * RQFL:<filename>,<transfer-key>,<firstbyte>,<#bytes to read>!
+ * Note that filename cannot be more than 8 characters and its .ext must be no more than 3.
+ *
+ * It is possible that this project will eventually use a different sensor interface all together
+ * if that is the case much of this code should still be salvagable as long as the protocol mentioned
+ * above is maintained. If a different sensor board will be used a few slight changes may need to be made
+ * to the code flashed onto the sensor board, but it should not require a large overhaul since the code
+ * on the sensor board is written in a dialect of C similar to what is used for arduinos. Of course
+ * if you are to connect sensors directly to the onboard computer then this code largely useless, save for
+ * the setup for creating new threads.
+ * Library.
+ */
+
+
+
 #include "WaspmoteController.h"
 #include <iostream>
 #include <ctime>
-//#include <boost/asio.hpp>
-
-//#include <boost/asio.hpp>
-//#include "SimpleSerial.h"
+#include <climits>
 
 
-// arduino-serial-lib -- simple library for reading/writing serial ports
-//
-// 2006-2013, Tod E. Kurt, http://todbot.com/blog/
-//
-
-
-#include <stdio.h>    // Standard input/output definitions
+#include <stdio.h>    // Standard input/output definitions /* defines FILENAME_MAX */
 #include <unistd.h>   // UNIX standard function definitions
-#include <fcntl.h>    // File control definitions
-#include <errno.h>    // Error number definitions
-#include <termios.h>  // POSIX terminal control definitions
-#include <string.h>   // String function definitions
-#include <sys/ioctl.h>
 #include <vector>
 #include <stdlib.h>
-
-// uncomment this to debug reads
-//#define SERIALPORTDEBUG
-
-// takes the string name of the serial port (e.g. "/dev/tty.usbserial","COM1")
-// and a baud rate (bps) and connects to that port at that speed and 8N1.
-// opens the port in fully raw mode so you can send binary data.
-// returns valid fd, or -1 on error
-int serialport_init(const char* serialport, int baud)
-{
-    struct termios toptions;
-    int fd;
-
-    //fd = open(serialport, O_RDWR | O_NOCTTY | O_NDELAY);
-    fd = open(serialport, O_RDWR | O_NONBLOCK );
-
-    if (fd == -1)  {
-        perror("serialport_init: Unable to open port ");
-        return -1;
-    }
-
-    //int iflags = TIOCM_DTR;
-    //ioctl(fd, TIOCMBIS, &iflags);     // turn on DTR
-    //ioctl(fd, TIOCMBIC, &iflags);    // turn off DTR
-
-    if (tcgetattr(fd, &toptions) < 0) {
-        perror("serialport_init: Couldn't get term attributes");
-        return -1;
-    }
-    speed_t brate = baud; // let you override switch below if needed
-    switch(baud) {
-    case 4800:   brate=B4800;   break;
-    case 9600:   brate=B9600;   break;
-#ifdef B14400
-    case 14400:  brate=B14400;  break;
-#endif
-    case 19200:  brate=B19200;  break;
-#ifdef B28800
-    case 28800:  brate=B28800;  break;
-#endif
-    case 38400:  brate=B38400;  break;
-    case 57600:  brate=B57600;  break;
-    case 115200: brate=B115200; break;
-    }
-    cfsetispeed(&toptions, brate);
-    cfsetospeed(&toptions, brate);
-
-    // 8N1
-    toptions.c_cflag &= ~PARENB;
-    toptions.c_cflag &= ~CSTOPB;
-    toptions.c_cflag &= ~CSIZE;
-    toptions.c_cflag |= CS8;
-    // no flow control
-    toptions.c_cflag &= ~CRTSCTS;
-
-    //toptions.c_cflag &= ~HUPCL; // disable hang-up-on-close to avoid reset
-
-    toptions.c_cflag |= CREAD | CLOCAL;  // turn on READ & ignore ctrl lines
-    toptions.c_iflag &= ~(IXON | IXOFF | IXANY); // turn off s/w flow ctrl
-
-    toptions.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG); // make raw
-    toptions.c_oflag &= ~OPOST; // make raw
-
-    // see: http://unixwiz.net/techtips/termios-vmin-vtime.html
-    toptions.c_cc[VMIN]  = 0;
-    toptions.c_cc[VTIME] = 0;
-    //toptions.c_cc[VTIME] = 20;
-
-    tcsetattr(fd, TCSANOW, &toptions);
-    if( tcsetattr(fd, TCSAFLUSH, &toptions) < 0) {
-        perror("init_serialport: Couldn't set term attributes");
-        return -1;
-    }
-
-    return fd;
-}
-
-//
-int serialport_close( int fd )
-{
-    return close( fd );
-}
-
-//
-int serialport_writebyte( int fd, unsigned char b)
-{
-    int n = write(fd,&b,1);
-    if( n!=1)
-        return -1;
-    return 0;
-}
-
-//
-int serialport_write(int fd, const char* str)
-{
-    int len = strlen(str);
-    int n = write(fd, str, len);
-    if( n!=len ) {
-        perror("serialport_write: couldn't write whole string\n");
-        return -1;
-    }
-    return 0;
-}
-
-//
-int serialport_read_until(int fd, char* buf, char until, int buf_max, int timeout)
-{
-    char b[1];  // read expects an array, so we give it a 1-byte array
-    int i=0;
-    do {
-        int n = read(fd, b, 1);  // read a char at a time
-        if( n==-1) return -1;    // couldn't read
-        if( n==0 ) {
-            usleep( 1 * 1000 );  // wait 1 msec try again
-            timeout--;
-            continue;
-        }
-#ifdef SERIALPORTDEBUG
-        printf("serialport_read_until: i=%d, n=%d b='%c'\n",i,n,b[0]); // debug
-#endif
-        buf[i] = b[0];
-        i++;
-    } while( b[0] != until && i < buf_max && timeout>0 );
-
-    buf[i] = 0;  // null terminate the string
-    return 0;
-}
-
-//
-int serialport_flush(int fd)
-{
-    sleep(2); //required to make flush work, for some reason
-    return tcflush(fd, TCIOFLUSH);
-}
-
-char read_byte_blocking(int fd){
-	char c;
-	char* b = &c;
-	while(1){
-		int n = read(fd, b, 1);  // read a char at a time
-		if( n==0 || n == -1 ) { // 0 no data, -1 error
-			usleep( 1 * 1000 );  // wait 1 msec try again
-		}else{
-			break;
-		}
-	}
-	return c;
-
-}
+#include <fstream>
+#ifdef WINDOWS
+    #include <direct.h>
+    #define GetCurrentDir _getcwd
+#else
+    #include <unistd.h>
+    #define GetCurrentDir getcwd
+ #endif
+#include <sys/types.h>
+#include <sys/stat.h>
+#include "simple_serial.h"
 
 
-char* InputReadyPattern = "Waspmote ready for input...";
-char toWrite[100];
 
-//Sets the inputed char* to a Clock Sync request with the following data
+char* InputReadyPattern = "Waspmote ready for input..."; //The pattern that the waspmote outputs when it is ready to recieve commands
+char toWrite[200];//A buffer for writing commands
+
+//Returns a sync clock command as a string with inputted data
 std::string syncClockCommand(struct tm *tstruct){
 	char buff[50];
 	char date[20];
@@ -190,9 +76,8 @@ std::string syncClockCommand(struct tm *tstruct){
 	return ret;
 }
 
-//Sets the inputed char* to a file request with the following data
-std::string requestFileCommand(char*filename, const char*key, unsigned long start, long numBytes){
-	std::cout<<"KEEEE:"<<key<<std::endl;
+//Returns a request file command as a string with inputted data
+std::string requestFileCommand(const char*filename, const char*key, unsigned long start, long numBytes){
 	char buff[50];
 	sprintf(buff, "RQFL:%s,%s,%lu,%li!", filename, key, start, numBytes);
 	std::string ret(buff);
@@ -216,9 +101,11 @@ char * get_key(){
 }*/
 
 
-
+//Listens for the file transfer key and reads file data until the next time the key appears.
+//As file data is revieved creates a simple one byte checksum using XOR on each byte.
+//After recieving the the second key, recieves the waspmote's computed checksum.
+//If the computed and recieved checksums match then it outputs the data
 int readWaspmoteFile(std::string &filestr,int fd,const char* key){
-	std::cout<<"KEY:"<<key<<std::endl;
 	char checksum =0;
 	char c;
 	unsigned int keybytes=0;
@@ -226,52 +113,53 @@ int readWaspmoteFile(std::string &filestr,int fd,const char* key){
 	unsigned int keylen = strlen(key);
 
 	while(1){
-		c = read_byte_blocking(fd);
+		c = read_byte_blocking(fd);//Get the next byte from the waspmote's output
 		if(!readingfile){
 			if(c == key[keybytes]){
 				keybytes++;
 			}else
-			if(keybytes == keylen && c == '0'){
+			if(keybytes == keylen && c == '0'){//Start reading the file if we have encountered the key and the a 0
 				readingfile = true;
 				keybytes = 0;
 				printf("\nReading file...\n");
 			}
 		}else{
-
-			filestr.push_back(c);
-			checksum ^= c;
-			//printf("CHECKSUM:%i,%i\n",checksum, c);
+			filestr.push_back(c);//Add the next byte to the file string
+			checksum ^= c;//Incorperate the next byte into the checksum
 			if(c == key[keybytes]){
 				keybytes++;
 			}else
 			if(keybytes == keylen){
+				//Undo the additions to the checksum created by the key and recieved checksum
 				checksum ^= c;
-				//printf("CHECKSUM:%i,%i\n",checksum, c);
 				for(int i= 0; i<keylen;i++){
 					checksum ^= key[i];
-					//printf("CHECKSUM:%i,%i\n",checksum, key[i]);
 				}
-
-
-				filestr.erase(filestr.size()-(keylen+1));
-				printf("CHECK:%i,%i",checksum, c);
-				if(checksum == c){
+				filestr.erase(filestr.size()-(keylen+1));//Erase the last few lines of the file string since they are the key followed by the checksum
+				if(checksum == c){//Check to make sure that the checksum we recieved is the same as the one we computed
+					std::cout << "File transfer successful!"<<std::endl;
 					return 0;
 				}else{
+					std::cout << "Error with file transfer: Checksum mismatch("<< checksum << "," << c << ")" << std::endl;
 					return 1;
 				}
+			}else{
+				keybytes == 0;//If the character does not match the next character in the key then start looking for the 1st character again
 			}
 
 		}
 	}
 }
+//A structure for a command that can be queued and sent to the waspmote
 struct waspmoteCommand{
-	std::string str;
-	const char * key;
-
+	std::string str;//The string format of the command. This is what the waspmote reads.
+	std::string file;//For file requests: the name of the file
+	std::string key;//For file requests: a 'unique' key that specifies the beginning and end of a file transfer
+	unsigned long start;//For file requests: the byte that the waspmote should start reading from
+	signed long numBytes;//For file requests: the number of bytes that should be read from the waspmote
 };
-std::vector<waspmoteCommand> commandQueue;
-int commandQueueLen = 0;
+
+std::vector<waspmoteCommand> commandQueue; //A Queue that holds commands that will be sent to the waspmote
 
 
 
@@ -289,61 +177,122 @@ const char* gen_random_key() {
 }
 */
 
-time_t lastSyncTime = (time_t)0;
-time_t lastRequestTime = (time_t)0;
-const time_t SYNC_FREQ = (time_t)60;
-const time_t REQ_FREQ = (time_t)1;
+time_t lastSyncTime = (time_t)time(0);//The last time that the board synced its clock with the clock on the waspmote
+time_t lastRequestTime = (time_t)time(0);//The last time that the board requested a file from the waspmote
+const time_t SYNC_FREQ = (time_t)1; //How often the board should syncronize the waspmotes clock with its clock in seconds
+const time_t REQ_FREQ = (time_t)1; //How often the board should request files from thewaspmotes in seconds
 
-char* keys[] = {"D3f5", "df45", "pwc5", "39df", "Ekgl"};
-int keyIndex = 0;
+char* keys[] = {"D3f5", "df45", "pwc5", "39df", "Ekgl"}; //A list of preset keys (for some reason randomly generating them was causing problems)
+int keyIndex = 0;//An index that indicates which key is the next key in line
+
+//Get the size of the file at the specified path
+std::ifstream::pos_type filesize(const char* filepath)
+{
+	std::cout << "FILE PATH:" <<filepath<<std::endl;
+	struct stat statbuf;
+	if (stat(filepath, &statbuf) == -1) {
+		return -1;
+	}
+    return statbuf.st_size;
+}
+//Make a directory
+void make_directory(char * path){
+	struct stat st = {0};
+	if (stat(path, &st) == -1) {
+		mkdir(path, 0777);
+	}
+}
+//Get the path of the directory that this executable exists in
+char * getExecutablePath(){
+	 char cCurrentPath[FILENAME_MAX];
+	 if (!GetCurrentDir(cCurrentPath, sizeof(cCurrentPath))){
+		 //return errno;
+	 }
+	 cCurrentPath[sizeof(cCurrentPath) - 1] = '\0'; /* not really required */
+	 return cCurrentPath;
+}
+
+//Takes the name of a file and returns the full path to where it will be stored on the onboard computer
+char* filenameToPath(const char* file){
+	char* filepath =getExecutablePath();
+	sprintf(filepath, "%s/wsp_data/",filepath); //create a string that holds the path to the wsp_data directory
+	make_directory(filepath); //Make the wsp_data directory if it does not exist
+	sprintf(filepath, "%s%s",filepath, file);//append the filename to the path
+	return filepath;
+}
+
+//Consdier changing this to how many bytes have been moved over wifi
+long numBytesExported(const char * filename){
+	return (long)filesize(filenameToPath(filename));
+}
+
+//Write data to the onboard computer
+void writeDataToFile(struct waspmoteCommand &command,std::string str){
+	std::ofstream file; //open in constructor
+	if( file ){
+		char * path= filenameToPath(command.file.c_str());
+		file.open(path, std::ios::app);
+		file << str;
+		file.close();
+		std::cout<< "Writing data to:"<<path;
+	}
+}
+
+
+
+//This can either be how data is written to the board or how it is exported over wifi
+void exportData(struct waspmoteCommand &command,std::string str){
+	std::cout <<str;
+	writeDataToFile(command, str);
+}
 
 void populateCommandQueue(){
-
-	char* filename = "15-08-18";
-
-
-
-	int start = 0;
-	int numBytes = -1;
 	time_t t = time(0);   // get time now
 	const char* key = keys[keyIndex++];//gen_random_key();
-	if(keyIndex >= 5){
-		keyIndex = 0;
-	}
-
-
-	std::cout << "KEYoo:" << key << std::endl;
-	//rand();
+	if(keyIndex >= 5)keyIndex = 0; //Reset the key index when we get to the end of the preset kyes
 	struct tm * now = localtime( & t );
-	time_t elapseSync = abs(t-lastSyncTime);
+	char filename[13];
+	unsigned long start = 0;
+
+	struct tm * prev = localtime( & lastRequestTime);
+	//generates a filename after the date of the previously written file
+	//we don't use the current date because that could cause cause us to miss data recorded around midnight
+	strftime(filename, sizeof(filename), "%y-%m-%d", prev);
+	std::cout <<"FILE NAME:" << filename<<std::endl;
+	start = numBytesExported(filename);//get the length of the file stored locally
+	if(start == ULONG_MAX)start = 0;//If for some reason it can't get the length just start at 0;
+	int numBytes = -1;//-1 indicated that we will just get all availiable data
+
+	time_t elapseSync = abs(t-lastSyncTime);//The time since the last time we synced the clocks
 	std::cout << "CLKS_COUNTDOWN:" << SYNC_FREQ-elapseSync << std::endl;
-	time_t elapseRequest = abs(t-lastRequestTime);
+	time_t elapseRequest = abs(t-lastRequestTime);//The time since we last requested data from the waspmote
 	std::cout << "FLRQ_COUNTDOWN:" << REQ_FREQ-elapseRequest << std::endl;
-	std::cout << "KEYoi:" << key << std::endl;
 
-	std::cout << "KEYyr:" << key << std::endl;
-
+	//If it has been long enough add a clock sync command to the queue
 	if(elapseSync >= SYNC_FREQ){
 		commandQueue.push_back((struct waspmoteCommand)
-				{syncClockCommand(now),""});
+				{syncClockCommand(now), "", "", 0, 0});
 		lastSyncTime = t;
 	}
+	//If it has been long enough add a file request command to the queue
 	if(elapseRequest >= REQ_FREQ){
-		std::cout << "KEYii:" << key << std::endl;
 		commandQueue.push_back((struct waspmoteCommand)
-				{requestFileCommand(filename, key, start, numBytes),key});
+				{requestFileCommand(filename, key, start, numBytes),filename,key,start,numBytes});
 		lastRequestTime = t;
 	}
 
 }
 
+
+
+//This is the main function for the thread generated by this controller
 void* startRoutine(void *threadarg)
 {
 	using namespace std;
 	struct thread_data *my_data;
 	my_data = (struct thread_data *) threadarg;
 
-	int fd = serialport_init(my_data->port,115200);
+	int fd = serialport_init(my_data->port,115200);//Open the serial port
     int inputReadyBytes = 0;
     char c;
 
@@ -352,15 +301,16 @@ void* startRoutine(void *threadarg)
 		std::cout << c;
 		//Listen for when the waspmote says that it is ready
 		if(c == InputReadyPattern[inputReadyBytes]){
-			inputReadyBytes++;
+			inputReadyBytes++;//Increment so that we test for the next byte in the pattern
 		}else{
-			inputReadyBytes = 0;
+			inputReadyBytes = 0;//start listening from the beginning if the character doesn't match the next character in the pattern
 		}
 		//When it is ready send any queued commands
 		if(inputReadyBytes >= strlen(InputReadyPattern)){
-			std::cout<<std::endl;
+			printf("\n");
 			commandQueue.clear();//Clear the command queue
-			populateCommandQueue();
+			populateCommandQueue();//Generate a set of commands and add them to the queue
+
 			//Put all the commands in the commands queue into one string
 			sprintf(toWrite, "SRT&");
 			for(int i=0; i < commandQueue.size(); i++){
@@ -371,23 +321,20 @@ void* startRoutine(void *threadarg)
 			usleep(100000);//Wait a fraction of a second before sending to be sure the waspmote is ready
 			serialport_write(fd, toWrite);
 			for(int i=0; i < commandQueue.size(); i++){
-				if(strlen(commandQueue[i].key) > 0){
+				if(strlen(commandQueue[i].key.c_str()) > 0){
 					std::string filestr;
-					int err = readWaspmoteFile(filestr,fd,commandQueue[i].key);
-					cout <<filestr;
+					int err = readWaspmoteFile(filestr,fd,commandQueue[i].key.c_str());
+					//if we got data from the waspmote and the checksums match then export the data to somewhere safe
 					if(err == 0){
-						cout << "File read successfully";
-					}else{
-						cout << "Error while reading file";
+						exportData(commandQueue[i],filestr);
+						printf("\n\n");
 					}
-
 				}
 			}
-
 			inputReadyBytes = 0;//Make sure we set this to zero so we wait again for the next inputReadyPattern
-
 		}
 	}
+	serialport_close(fd);//Safely close the serial port
 	pthread_exit(NULL); //kill the thread
 }
 
@@ -402,10 +349,12 @@ WaspmoteController::WaspmoteController(const char* port){
 		delete this;
 	}
 }
+//Destructor for the controller
 WaspmoteController::~WaspmoteController(){
 	waspmoteThreadData.loop = false; //safely kill the thread by ending the loop
 }
 
+//Not used, but may be useful for checking for errors in this thread from the main thread
 int WaspmoteController::getError(){
 	return waspmoteThreadData.error;
 }
