@@ -50,8 +50,8 @@ char USB_COMMAND_END_PATTERN = '!';
 char EOT = 0x04;
 
 int KEY_LENGTH = 4;
-int NUM_POLLS_BTW_INPUT=12;
-char * SLEEP_TIME = "00:00:00:02"
+int NUM_POLLS_BTW_INPUT=2;
+char * SLEEP_TIME = "00:00:00:02";
 
 // buffer to write into Sd File
 char toWrite[200];
@@ -159,9 +159,9 @@ void loop()
     SD.ON(); // sets the corresponding pins as inputs
     //USB.flush();
     delay(100);
-    USB.println(USB_READY_FOR_INPUT);
-    parseInput(10000);//parse command input from the serial line
   }
+  USB.println(USB_READY_FOR_INPUT);
+   parseInput(10000);//parse command input from the serial line
 }
 
 //Reads data from the SD cards and sends it over usb

@@ -61,6 +61,10 @@
 
 char* InputReadyPattern = "Waspmote ready for input..."; //The pattern that the waspmote outputs when it is ready to recieve commands
 char toWrite[200];//A buffer for writing commands
+time_t lastSyncTime = (time_t)time(0);//The last time that the board synced its clock with the clock on the waspmote
+time_t lastRequestTime = (time_t)time(0);//The last time that the board requested a file from the waspmote
+const time_t SYNC_FREQ = (time_t)30; //How often the board should syncronize the waspmotes clock with its clock in seconds
+const time_t REQ_FREQ = (time_t)10; //How often the board should request files from thewaspmote in seconds
 
 //Returns a sync clock command as a string with inputted data
 std::string syncClockCommand(struct tm *tstruct){
@@ -141,6 +145,7 @@ int readWaspmoteFile(std::string &filestr,int fd,const char* key){
 					return 0;
 				}else{
 					std::cout << "Error with file transfer: Checksum mismatch("<< checksum << "," << c << ")" << std::endl;
+					lastRequestTime -=REQ_FREQ;
 					return 1;
 				}
 			}else{
@@ -177,10 +182,7 @@ const char* gen_random_key() {
 }
 */
 
-time_t lastSyncTime = (time_t)time(0);//The last time that the board synced its clock with the clock on the waspmote
-time_t lastRequestTime = (time_t)time(0);//The last time that the board requested a file from the waspmote
-const time_t SYNC_FREQ = (time_t)1; //How often the board should syncronize the waspmotes clock with its clock in seconds
-const time_t REQ_FREQ = (time_t)1; //How often the board should request files from thewaspmotes in seconds
+
 
 char* keys[] = {"D3f5", "df45", "pwc5", "39df", "Ekgl"}; //A list of preset keys (for some reason randomly generating them was causing problems)
 int keyIndex = 0;//An index that indicates which key is the next key in line
