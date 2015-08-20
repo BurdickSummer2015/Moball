@@ -3,5 +3,6 @@
 -On this computer the waspmote IDE is in Documents/Moball/waspmote-pro-ide-v04-linux32. Then run sudo ./waspmote
 -You will need to do sudo ./Moball for desktop configurations
 -You need to compile something for the post-build step to work, so if it fails, clean the project and recompile
+-It will fail it Moball is running or if netconfig.sh need to be run
 -To adjust the timing of the waspmote, chanage SYNC_FREQ and REQ_FREQ in WaspmoteControll.cpp, and NUM_POLLS_BTW_INPUT and SLEEP_TIME in Sensor_Code.pde
-
+-GOOD LUCK
